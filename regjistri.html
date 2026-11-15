@@ -1,9 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<script>
+(function(){function show(t){var d=document.getElementById("__err");if(!d){d=document.createElement("div");d.id="__err";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b3261e;color:#fff;padding:10px 14px;font:13px system-ui,sans-serif;word-break:break-word";document.body.appendChild(d);}d.textContent="Gabim: "+t;}
+window.addEventListener("error",function(e){show((e.message||(e.target&&(e.target.src||e.target.href))||"")+" ("+String(e.filename||"").split("/").pop()+":"+(e.lineno||"")+")");},true);
+window.addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.code==="timeout")return;show((r&&(r.message||r.code))||String(r));});})();
+</script>
 <title>Regjistri i nëndrejtorit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: one-column register with a tab bar; the observation form replaces the list when opened.
    Palette: paper-white and ink-blue, semantic green/amber/red kept separate from the accent. */
@@ -140,9 +142,6 @@ textarea.big{min-height:130px;line-height:1.5}
 /* Vendos këtu konfigurimin e Firebase (firebaseConfig). Nëse mbetet bosh, regjistri ruan vetëm në shfletues. */
 window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDomain:"regjistri-i-monitorimit.firebaseapp.com",projectId:"regjistri-i-monitorimit",storageBucket:"regjistri-i-monitorimit.firebasestorage.app",messagingSenderId:"762979308128",appId:"1:762979308128:web:2c13904310b52377dca905"};
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* Shtresa e pavarur: jashtë Claude, të dhënat ruhen në shfletues (localStorage) */
 (function(){
@@ -178,10 +177,23 @@ window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDom
   const CFG=window.FIREBASE_CONFIG||{};
   if(CFG.projectId&&location.protocol!=="file:"){
     window.__STANDALONE=false;
-    if(typeof firebase==="undefined"){
-      window.__FBERR="nuk u ngarkua Firebase (kontrollo lidhjen me internetin).";
-      window.claude={use:async n=>n==="downloads"?downloads:null};
-    }else{
+    const B="https://www.gstatic.com/firebasejs/10.12.2/";
+    const loadScript=u=>new Promise((res,rej)=>{const e=document.createElement("script");e.src=u;e.onload=res;e.onerror=()=>rej(new Error("nuk u ngarkua "+u.split("/").pop()+" (rrjeti bllokon gstatic.com?)"));document.head.appendChild(e);});
+    const timeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)),ms))]);
+    const $i=id=>document.getElementById(id);
+    const loginUI=auth=>new Promise(res=>{
+      $i("view").innerHTML='<div class="panel" style="max-width:380px;margin:30px auto"><h2>Hyrje në regjistër</h2><label class="f">Email<input id="lgE" type="email" autocomplete="username"></label><label class="f" style="margin-top:10px">Fjalëkalimi<input id="lgP" type="password" autocomplete="current-password"></label><p class="msg" id="lgM" style="margin:8px 0"></p><button class="btn primary" id="lgGo">Hyr</button></div>';
+      const go=async()=>{const m=$i("lgM");m.className="msg";m.textContent="Duke hyrë…";
+        try{const r=await auth.signInWithEmailAndPassword($i("lgE").value.trim(),$i("lgP").value);res(r.user);}
+        catch(e){m.className="msg err";m.textContent="Nuk u hap: "+(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(e.code||"")?"email ose fjalëkalim i gabuar.":(e.code||e.message));}};
+      $i("lgGo").onclick=go;$i("lgP").onkeydown=e=>{if(e.key==="Enter")go();};
+    });
+    let core=null;
+    const init=()=>core||(core=(async()=>{
+      if(typeof firebase==="undefined"){
+        await timeout(loadScript(B+"firebase-app-compat.js"),15000,"Firebase nuk u ngarkua brenda 15 sekondave.");
+        await timeout(Promise.all([loadScript(B+"firebase-auth-compat.js"),loadScript(B+"firebase-firestore-compat.js")]),15000,"Firebase nuk u ngarkua brenda 15 sekondave.");
+      }
       if(!firebase.apps.length)firebase.initializeApp(CFG);
       const auth=firebase.auth(),fs=firebase.firestore();
       window.__FB_AUTH=auth;
@@ -190,29 +202,18 @@ window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDom
         onSnapshot:(cb,err)=>fs.collection(c).onSnapshot(cb,err)
       })};
       const firstUser=()=>new Promise(res=>{const off=auth.onAuthStateChanged(x=>{off();res(x);});});
-      const $i=id=>document.getElementById(id);
-      const loginUI=()=>new Promise(res=>{
-        $i("view").innerHTML='<div class="panel" style="max-width:380px;margin:30px auto"><h2>Hyrje në regjistër</h2><label class="f">Email<input id="lgE" type="email" autocomplete="username"></label><label class="f" style="margin-top:10px">Fjalëkalimi<input id="lgP" type="password" autocomplete="current-password"></label><p class="msg" id="lgM" style="margin:8px 0"></p><button class="btn primary" id="lgGo">Hyr</button></div>';
-        const go=async()=>{const m=$i("lgM");m.className="msg";m.textContent="Duke hyrë…";
-          try{const r=await auth.signInWithEmailAndPassword($i("lgE").value.trim(),$i("lgP").value);res(r.user);}
-          catch(e){m.className="msg err";m.textContent="Nuk u hap: "+(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(e.code||"")?"email ose fjalëkalim i gabuar.":(e.code||e.message));}};
-        $i("lgGo").onclick=go;$i("lgP").onkeydown=e=>{if(e.key==="Enter")go();};
-      });
-      let ready=null;
-      const waitAuth=()=>ready||(ready=(async()=>{
-        let u=await firstUser();
-        if(window.__TEACHER){if(!u)u=(await auth.signInAnonymously()).user;return u;}
-        while(!u||u.isAnonymous)u=await loginUI();
-        return u;
-      })().catch(e=>{window.__FBERR=(e&&(e.code||e.message))||String(e);throw e;}));
-      window.claude={use:async n=>{
-        if(n==="downloads")return downloads;
-        await waitAuth();
-        if(n==="db")return fdb;
-        if(n==="user")return {id:async()=>auth.currentUser.uid,canEdit:async()=>!window.__TEACHER&&!!auth.currentUser&&!auth.currentUser.isAnonymous};
-        return null;
-      }};
-    }
+      let u=await firstUser();
+      if(window.__TEACHER){if(!u)u=(await auth.signInAnonymously()).user;}
+      else{while(!u||u.isAnonymous)u=await loginUI(auth);}
+      return {auth,fdb};
+    })().catch(e=>{window.__FBERR=(e&&(e.code||e.message))||String(e);throw e;}));
+    window.claude={use:async n=>{
+      if(n==="downloads")return downloads;
+      const c=await init();
+      if(n==="db")return c.fdb;
+      if(n==="user")return {id:async()=>c.auth.currentUser.uid,canEdit:async()=>!window.__TEACHER&&!!c.auth.currentUser&&!c.auth.currentUser.isAnonymous};
+      return null;
+    }};
   }
 })();
 </script>
@@ -583,7 +584,7 @@ function formView(){
       </div>
     </div>
     <div class="sec"><h3 class="st">4 · Vetëvlerësimi i mësuesit</h3>
-      <p class="legend">Dërgoja mësuesit këtë lidhje në fund të orës. Mësuesi duhet ta ketë faqen të ndarë me të (Ndaj → Kontribuues) dhe të hyjë me llogarinë e tij. Përgjigjet ruhen këtu.</p>
+      <p class="legend">Dërgoja mësuesit këtë lidhje në fund të orës. Mësuesi e hap, plotëson formularin dhe e dërgon pa llogari. Përgjigjet ruhen këtu.</p>
       <div class="linkbox"><input id="linkIn" readonly value="${esc(link)}" aria-label="Lidhja e vetëvlerësimit"><button class="btn small" id="copyLink">Kopjo lidhjen</button><button class="btn small" id="openSelf">Plotëso në emër të mësuesit</button></div>${location.protocol==="file:"?`<p class="sub" style="margin-top:6px">Kjo lidhje u hapet mësuesve vetëm kur regjistri është vendosur online (p.sh. GitHub Pages). Nga skedari në kompjuter nuk hapet dot nga të tjerët.</p>`:""}
       ${sf?selfSummary(sf,sc.pct):`<p class="legend" style="margin-top:10px">Ende pa vetëvlerësim nga ${esc(tname)}.</p>`}
     </div>
