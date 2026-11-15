@@ -1,9 +1,11 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<script>
+(function(){function show(t){var d=document.getElementById("__err");if(!d){d=document.createElement("div");d.id="__err";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b3261e;color:#fff;padding:10px 14px;font:13px system-ui,sans-serif;word-break:break-word";document.body.appendChild(d);}d.textContent="Gabim: "+t;}
+window.addEventListener("error",function(e){show((e.message||(e.target&&(e.target.src||e.target.href))||"")+" ("+String(e.filename||"").split("/").pop()+":"+(e.lineno||"")+")");},true);
+window.addEventListener("unhandledrejection",function(e){var r=e.reason;if(r&&r.code==="timeout")return;show((r&&(r.message||r.code))||String(r));});})();
+</script>
 <title>Regjistri i nëndrejtorit</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: one-column register with a tab bar; the observation form replaces the list when opened.
    Palette: paper-white and ink-blue, semantic green/amber/red kept separate from the accent. */
@@ -109,6 +111,10 @@ textarea.big{min-height:130px;line-height:1.5}
 .linkbox input{flex:1 1 260px;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:12.5px}
 .selfcmp{margin-top:10px}
 .selfcmp td,.selfcmp th{padding:6px 10px}
+.wk summary{cursor:pointer;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.wk .it{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.wk .addrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.wk .addrow input,.wk .addrow select{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;font-size:14px}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .3s}}
 </style>
 
@@ -121,13 +127,14 @@ textarea.big{min-height:130px;line-height:1.5}
     <div id="hdrbtns" style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn small" id="dossierBtn" hidden>Shkarko dosjen e plotë (për printim)</button>
       <button class="btn small" id="exportBtn" hidden>Eksporto CSV</button>
-      <button class="btn small" id="dataBtn" hidden>Të dhënat: importo / kopje rezervë</button>
+      <button class="btn small" id="dataBtn" hidden>Të dhënat: importo / rezervë / fshi</button>
     </div>
   </header>
   <div id="banner"></div>
   <nav role="tablist" id="tabs">
     <button role="tab" data-tab="pasqyra">Pasqyra</button>
     <button role="tab" data-tab="monitorimi">Monitorimi</button>
+    <button role="tab" data-tab="java">Orari javor</button>
     <button role="tab" data-tab="veprimtarite">Veprimtaritë</button>
     <button role="tab" data-tab="matura">Matura</button>
     <button role="tab" data-tab="mesuesit">Mësuesit</button>
@@ -140,9 +147,6 @@ textarea.big{min-height:130px;line-height:1.5}
 /* Vendos këtu konfigurimin e Firebase (firebaseConfig). Nëse mbetet bosh, regjistri ruan vetëm në shfletues. */
 window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDomain:"regjistri-i-monitorimit.firebaseapp.com",projectId:"regjistri-i-monitorimit",storageBucket:"regjistri-i-monitorimit.firebasestorage.app",messagingSenderId:"762979308128",appId:"1:762979308128:web:2c13904310b52377dca905"};
 </script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* Shtresa e pavarur: jashtë Claude, të dhënat ruhen në shfletues (localStorage) */
 (function(){
@@ -161,7 +165,8 @@ window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDom
     doc:id=>({
       get:async()=>{const m=all(c);return {exists:id in m,data:()=>m[id]};},
       set:async(d,o)=>{const m=all(c);m[id]=(o&&o.merge)?merge(m[id]||{},clone(d)):clone(d);wr("c:"+c,m);notify(c);},
-      update:async d=>{const m=all(c);m[id]=merge(m[id]||{},clone(d));wr("c:"+c,m);notify(c);}
+      update:async d=>{const m=all(c);m[id]=merge(m[id]||{},clone(d));wr("c:"+c,m);notify(c);},
+      delete:async()=>{const m=all(c);delete m[id];wr("c:"+c,m);notify(c);}
     }),
     onSnapshot:cb=>{(subs[c]=subs[c]||[]).push(cb);setTimeout(()=>cb(snapOf(c)),0);return()=>{subs[c]=subs[c].filter(f=>f!==cb);};}
   })};
@@ -178,41 +183,43 @@ window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDom
   const CFG=window.FIREBASE_CONFIG||{};
   if(CFG.projectId&&location.protocol!=="file:"){
     window.__STANDALONE=false;
-    if(typeof firebase==="undefined"){
-      window.__FBERR="nuk u ngarkua Firebase (kontrollo lidhjen me internetin).";
-      window.claude={use:async n=>n==="downloads"?downloads:null};
-    }else{
+    const B="https://www.gstatic.com/firebasejs/10.12.2/";
+    const loadScript=u=>new Promise((res,rej)=>{const e=document.createElement("script");e.src=u;e.onload=res;e.onerror=()=>rej(new Error("nuk u ngarkua "+u.split("/").pop()+" (rrjeti bllokon gstatic.com?)"));document.head.appendChild(e);});
+    const timeout=(p,ms,msg)=>Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej(new Error(msg)),ms))]);
+    const $i=id=>document.getElementById(id);
+    const loginUI=auth=>new Promise(res=>{
+      $i("view").innerHTML='<div class="panel" style="max-width:380px;margin:30px auto"><h2>Hyrje në regjistër</h2><label class="f">Email<input id="lgE" type="email" autocomplete="username"></label><label class="f" style="margin-top:10px">Fjalëkalimi<input id="lgP" type="password" autocomplete="current-password"></label><p class="msg" id="lgM" style="margin:8px 0"></p><button class="btn primary" id="lgGo">Hyr</button></div>';
+      const go=async()=>{const m=$i("lgM");m.className="msg";m.textContent="Duke hyrë…";
+        try{const r=await auth.signInWithEmailAndPassword($i("lgE").value.trim(),$i("lgP").value);res(r.user);}
+        catch(e){m.className="msg err";m.textContent="Nuk u hap: "+(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(e.code||"")?"email ose fjalëkalim i gabuar.":(e.code||e.message));}};
+      $i("lgGo").onclick=go;$i("lgP").onkeydown=e=>{if(e.key==="Enter")go();};
+    });
+    let core=null;
+    const init=()=>core||(core=(async()=>{
+      if(typeof firebase==="undefined"){
+        await timeout(loadScript(B+"firebase-app-compat.js"),15000,"Firebase nuk u ngarkua brenda 15 sekondave.");
+        await timeout(Promise.all([loadScript(B+"firebase-auth-compat.js"),loadScript(B+"firebase-firestore-compat.js")]),15000,"Firebase nuk u ngarkua brenda 15 sekondave.");
+      }
       if(!firebase.apps.length)firebase.initializeApp(CFG);
       const auth=firebase.auth(),fs=firebase.firestore();
       window.__FB_AUTH=auth;
       const fdb={collection:c=>({
-        doc:id=>{const r=fs.collection(c).doc(id);return {get:()=>r.get(),set:(d,o)=>r.set(clone(d),o),update:d=>r.update(clone(d))};},
+        doc:id=>{const r=fs.collection(c).doc(id);return {get:()=>r.get(),set:(d,o)=>r.set(clone(d),o),update:d=>r.update(clone(d)),delete:()=>r.delete()};},
         onSnapshot:(cb,err)=>fs.collection(c).onSnapshot(cb,err)
       })};
       const firstUser=()=>new Promise(res=>{const off=auth.onAuthStateChanged(x=>{off();res(x);});});
-      const $i=id=>document.getElementById(id);
-      const loginUI=()=>new Promise(res=>{
-        $i("view").innerHTML='<div class="panel" style="max-width:380px;margin:30px auto"><h2>Hyrje në regjistër</h2><label class="f">Email<input id="lgE" type="email" autocomplete="username"></label><label class="f" style="margin-top:10px">Fjalëkalimi<input id="lgP" type="password" autocomplete="current-password"></label><p class="msg" id="lgM" style="margin:8px 0"></p><button class="btn primary" id="lgGo">Hyr</button></div>';
-        const go=async()=>{const m=$i("lgM");m.className="msg";m.textContent="Duke hyrë…";
-          try{const r=await auth.signInWithEmailAndPassword($i("lgE").value.trim(),$i("lgP").value);res(r.user);}
-          catch(e){m.className="msg err";m.textContent="Nuk u hap: "+(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(e.code||"")?"email ose fjalëkalim i gabuar.":(e.code||e.message));}};
-        $i("lgGo").onclick=go;$i("lgP").onkeydown=e=>{if(e.key==="Enter")go();};
-      });
-      let ready=null;
-      const waitAuth=()=>ready||(ready=(async()=>{
-        let u=await firstUser();
-        if(window.__TEACHER){if(!u)u=(await auth.signInAnonymously()).user;return u;}
-        while(!u||u.isAnonymous)u=await loginUI();
-        return u;
-      })().catch(e=>{window.__FBERR=(e&&(e.code||e.message))||String(e);throw e;}));
-      window.claude={use:async n=>{
-        if(n==="downloads")return downloads;
-        await waitAuth();
-        if(n==="db")return fdb;
-        if(n==="user")return {id:async()=>auth.currentUser.uid,canEdit:async()=>!window.__TEACHER&&!!auth.currentUser&&!auth.currentUser.isAnonymous};
-        return null;
-      }};
-    }
+      let u=await firstUser();
+      if(window.__TEACHER){if(!u)u=(await auth.signInAnonymously()).user;}
+      else{while(!u||u.isAnonymous)u=await loginUI(auth);}
+      return {auth,fdb};
+    })().catch(e=>{window.__FBERR=(e&&(e.code||e.message))||String(e);throw e;}));
+    window.claude={use:async n=>{
+      if(n==="downloads")return downloads;
+      const c=await init();
+      if(n==="db")return c.fdb;
+      if(n==="user")return {id:async()=>c.auth.currentUser.uid,canEdit:async()=>!window.__TEACHER&&!!c.auth.currentUser&&!c.auth.currentUser.isAnonymous};
+      return null;
+    }};
   }
 })();
 </script>
@@ -394,8 +401,12 @@ function scoreOf(doc){
   return {pct:n?Math.round(sum/(4*n)*100):null,n,groups};
 }
 function selfScore(f){if(!f)return null;let s=0,n=0;SELF_ITEMS.forEach(([k])=>{if(f[k]){s+=f[k];n++;}});return n?Math.round(s/(4*n)*100):null;}
-function statusOf(o){const s=o.doc.status;if(s==="kryer")return"kryer";if(s==="shtyrë")return"shtyrë";if(s==="pa-kryer")return"pa-kryer";return o.date<today()?"vonuar":"planifikuar";}
-const STAT={"kryer":["Kryer","good"],"planifikuar":["Planifikuar","acc"],"vonuar":["Vonuar","bad"],"shtyrë":["Shtyrë","warn"],"pa-kryer":["Nuk u krye","bad"]};
+function statusOf(o){const s=o.doc.status;if(s==="kryer")return"kryer";if(s==="shtyrë")return"shtyrë";if(s==="pa-kryer")return"pa-kryer";if(s==="hequr")return"hequr";return o.date<today()?"vonuar":"planifikuar";}
+const STAT={"kryer":["Kryer","good"],"planifikuar":["Planifikuar","acc"],"vonuar":["Vonuar","bad"],"shtyrë":["Shtyrë","warn"],"pa-kryer":["Nuk u krye","bad"],"hequr":["Hequr","warn"]};
+function TL(){const hid=id=>(state.taskDocs[id]||{}).hidden;
+  const base=TASKS.filter(t=>!hid(t.id));
+  const cus=Object.entries(state.taskDocs).filter(([id,d])=>id.startsWith("c-")&&d&&!d.hidden).map(([id,d])=>({id,g:d.g||"Të tjera",t:d.t||"",k:d.k||"",s:d.s||null,e:d.e||null,p:d.p||"",custom:true}));
+  return base.concat(cus);}
 function taskDone(id){return !!(state.taskDocs[id]&&state.taskDocs[id].done);}
 function taskStatus(t){if(taskDone(t.id))return["Kryer","good"];const td=today();if(t.e&&t.e<td)return["Vonuar","bad"];if(t.s&&t.s<=td&&(!t.e||t.e>=td))return["Në afat","acc"];return t.s?["Më vonë",""]:["I vazhdueshëm",""];}
 
@@ -447,24 +458,25 @@ function render(){
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===state.tab));
   if(state.vv){view.innerHTML=selfView(true);bindSelf(true);return;}
   if(state.tab==="monitorimi"&&state.openObj){view.innerHTML=formView();bindForm();return;}
-  view.innerHTML=({pasqyra,monitorimi,veprimtarite,matura,mesuesit})[state.tab]();
-  ({pasqyra:bindOverview,monitorimi:bindMon,veprimtarite:bindTasks,matura:bindMatura,mesuesit:bindTeachers})[state.tab]();
+  view.innerHTML=({pasqyra,monitorimi,java,veprimtarite,matura,mesuesit})[state.tab]();
+  ({pasqyra:bindOverview,monitorimi:bindMon,java:bindJava,veprimtarite:bindTasks,matura:bindMatura,mesuesit:bindTeachers})[state.tab]();
 }
 
 function pasqyra(){
   const obs=allObs();const planned=obs.filter(o=>!o.extra);const done=planned.filter(o=>o.doc.status==="kryer").length;
   const extra=obs.filter(o=>o.extra&&o.doc.status==="kryer").length;
-  const tdone=TASKS.filter(t=>taskDone(t.id)).length, tover=TASKS.filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).length;
+  const tdone=TL().filter(t=>taskDone(t.id)).length, tover=TL().filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).length;
   const lateObs=planned.filter(o=>statusOf(o)==="vonuar").length;
   const mdone=MCLASSES.reduce((a,c)=>a+MSTEPS.filter(s=>((state.matDocs[mkey(c)]||{}).steps||{})[s[0]]).length,0), mtot=MCLASSES.length*MSTEPS.length;
   const scored=obs.filter(o=>o.doc.status==="kryer").map(o=>scoreOf(o.doc).pct).filter(p=>p!=null);
   const avg=scored.length?Math.round(scored.reduce((a,b)=>a+b,0)/scored.length):null;
   const selfN=Object.keys(state.selfForms).length;
+  const wk0=mondayOf(today()),wc=weekCalc(wk0),inWk=weekList().includes(wk0)&&!wc.off;
   const tile=(n,l,p)=>`<div class="tile"><div class="n">${n}</div><div class="l">${l}</div>${p!=null?`<div class="bar"><i style="width:${p}%"></i></div>`:""}</div>`;
-  const upcoming=planned.filter(o=>o.doc.status!=="kryer"&&o.doc.status!=="pa-kryer"&&o.date>=today()).slice(0,6);
+  const upcoming=planned.filter(o=>o.doc.status!=="kryer"&&o.doc.status!=="pa-kryer"&&o.doc.status!=="hequr"&&o.date>=today()).slice(0,6);
   const late=planned.filter(o=>statusOf(o)==="vonuar").slice(0,6);
-  const taskLate=TASKS.filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).slice(0,6);
-  const taskNow=TASKS.filter(t=>!taskDone(t.id)&&t.s&&t.s<=today()&&t.e&&t.e>=today()).slice(0,6);
+  const taskLate=TL().filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).slice(0,6);
+  const taskNow=TL().filter(t=>!taskDone(t.id)&&t.s&&t.s<=today()&&t.e&&t.e>=today()).slice(0,6);
   const orow=o=>`<tr class="row" data-open="${esc(o.id)}"><td class="mono">${fmt(o.date)}</td><td>${esc(o.teacher)}<div class="muted" style="font-size:13px">${esc(o.subject)} · ${esc(o.klasa)}</div></td><td class="mono">${esc(o.ora)}</td></tr>`;
   const trow=t=>`<div class="task" style="grid-template-columns:1fr"><div>${esc(t.t)}</div><div class="muted" style="font-size:13px">${esc(t.k)} · ${esc(t.g)}</div></div>`;
   const periodBars=[1,2].map(c=>{const n=planned.filter(o=>o.cycle===c).length;const d=planned.filter(o=>o.cycle===c&&o.doc.status==="kryer").length;return `<div style="margin-top:10px"><div style="display:flex;justify-content:space-between"><span>Monitorimi i ${c===1?"parë":"dytë"}</span><span class="mono">${d}/${n}</span></div><div class="bar"><i style="width:${n?d/n*100:0}%"></i></div></div>`;}).join("");
@@ -473,7 +485,8 @@ function pasqyra(){
     ${tile(done+"/32","Vëzhgime të kryera"+(extra?` (+${extra} shtesë)`:""),done/32*100)}
     ${tile(avg==null?"–":avg+"%","Mesatarja e vëzhgimeve"+(avg==null?"":" · "+levelOf(avg)),avg)}
     ${tile(selfN,"Vetëvlerësime nga mësuesit",null)}
-    ${tile(tdone+"/"+TASKS.length,"Veprimtari të planit të kryera",tdone/TASKS.length*100)}
+    ${tile(inWk?hf(wc.q+wc.d)+"/4":"–","Orë të planifikuara këtë javë (3 cilësi + 1 dokumentim)",inWk?Math.min(100,(wc.q+wc.d)/4*100):null)}
+    ${tile(tdone+"/"+TL().length,"Veprimtari të planit të kryera",tdone/TL().length*100)}
     ${tile(tover+lateObs,"Të vonuara (veprimtari + vëzhgime)",null)}
     ${tile(mdone+"/"+mtot,"Hapa Matura të përfunduar",mdone/mtot*100)}
   </div>
@@ -497,7 +510,7 @@ function monitorimi(){
   if(f.shift!=="all")obs=obs.filter(o=>o.shift===f.shift);
   if(f.subj!=="all")obs=obs.filter(o=>o.subject===f.subj);
   if(f.teacher!=="all")obs=obs.filter(o=>o.teacher===f.teacher);
-  if(f.status!=="all")obs=obs.filter(o=>statusOf(o)===f.status);
+  if(f.status!=="all")obs=obs.filter(o=>statusOf(o)===f.status);else obs=obs.filter(o=>o.doc.status!=="hequr");
   const chip=(k,v,l)=>`<button class="chip" data-f="${k}" data-v="${v}" aria-pressed="${f[k]===v}">${l}</button>`;
   const rows=obs.map(o=>{const s=statusOf(o),sc=scoreOf(o.doc),lv=levelOf(sc.pct);const [st,cl]=STAT[s];const sf=state.selfForms[o.id];
     return `<tr class="row" data-open="${esc(o.id)}"><td class="mono">${fmt(o.date)}${o.date!==o.planDate&&!o.extra?`<div class="muted" style="font-size:12px">planifikuar ${fmt(o.planDate)}</div>`:""}</td><td>${esc(o.teacher)}${o.extra?" "+pill("shtesë","acc"):""}</td><td>${esc(o.subject)}</td><td>${esc(o.klasa)}</td><td class="mono">${esc(o.ora)}</td><td>${esc(o.shift)}</td><td>${pill(st,cl)}</td><td>${sc.pct==null?"–":`<span class="mono">${sc.pct}%</span> ${pill(lv,levelCls(lv))}`}${o.doc.recs&&o.doc.recsDone===false?" "+pill("rekomandime","warn"):""}${sf?" "+pill("vetëvlerësim","acc"):""}</td></tr>`;}).join("");
@@ -508,7 +521,7 @@ function monitorimi(){
     <span class="muted">|</span>${chip("subj","all","Të gjitha lëndët")}${chip("subj","Matematikë","Matematikë")}${chip("subj","Fizikë","Fizikë")}${chip("subj","TIK","TIK")}
   </div>
   <div class="filters">
-    ${chip("status","all","Çdo gjendje")}${chip("status","planifikuar","Planifikuar")}${chip("status","kryer","Kryer")}${chip("status","vonuar","Vonuar")}${chip("status","shtyrë","Shtyrë")}
+    ${chip("status","all","Çdo gjendje")}${chip("status","planifikuar","Planifikuar")}${chip("status","kryer","Kryer")}${chip("status","vonuar","Vonuar")}${chip("status","shtyrë","Shtyrë")}${chip("status","hequr","Hequr")}
     <select id="fteacher" aria-label="Mësuesi" class="btn"><option value="all">Çdo mësues</option>${teachers.map(t=>`<option ${f.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select>
     <button class="btn primary small" id="addExtra">+ Vëzhgim shtesë</button>
   </div>
@@ -559,7 +572,7 @@ function formView(){
       <label class="f">Nxënës të pranishëm<input id="f_present" inputmode="numeric" value="${esc(d.present)}"></label>
       <label class="f">Nxënës gjithsej në klasë<input id="f_total" inputmode="numeric" value="${esc(d.total)}"></label>
       <label class="f">Kohëzgjatja e vëzhgimit (min)<input id="f_duration" inputmode="numeric" value="${esc(d.duration)}"></label>
-      <label class="f">Gjendja<select id="f_status">${[["kryer","Kryer"],["shtyrë","Shtyrë"],["pa-kryer","Nuk u krye"]].map(([v,l])=>`<option value="${v}" ${d.status===v?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label class="f">Gjendja<select id="f_status">${[["kryer","Kryer"],["shtyrë","Shtyrë"],["pa-kryer","Nuk u krye"],["hequr","Hequr nga grafiku"]].map(([v,l])=>`<option value="${v}" ${d.status===v?"selected":""}>${l}</option>`).join("")}</select></label>
     </div>
     <div class="grid2" style="margin-top:12px;grid-template-columns:1fr 1fr"><label class="f">Tema e orës<input id="f_tema" value="${esc(d.tema)}"></label><label class="f">Qëllimi / rezultatet e pritura të orës<input id="f_objektivi" value="${esc(d.objektivi)}"></label></div></div>
     <div class="sec"><h3 class="st">2 · Instrumenti i vëzhgimit (Fusha 2 e ASCAP)</h3>
@@ -583,11 +596,11 @@ function formView(){
       </div>
     </div>
     <div class="sec"><h3 class="st">4 · Vetëvlerësimi i mësuesit</h3>
-      <p class="legend">Dërgoja mësuesit këtë lidhje në fund të orës. Mësuesi duhet ta ketë faqen të ndarë me të (Ndaj → Kontribuues) dhe të hyjë me llogarinë e tij. Përgjigjet ruhen këtu.</p>
+      <p class="legend">Dërgoja mësuesit këtë lidhje në fund të orës. Mësuesi e hap, plotëson formularin dhe e dërgon pa llogari. Përgjigjet ruhen këtu.</p>
       <div class="linkbox"><input id="linkIn" readonly value="${esc(link)}" aria-label="Lidhja e vetëvlerësimit"><button class="btn small" id="copyLink">Kopjo lidhjen</button><button class="btn small" id="openSelf">Plotëso në emër të mësuesit</button></div>${location.protocol==="file:"?`<p class="sub" style="margin-top:6px">Kjo lidhje u hapet mësuesve vetëm kur regjistri është vendosur online (p.sh. GitHub Pages). Nga skedari në kompjuter nuk hapet dot nga të tjerët.</p>`:""}
-      ${sf?selfSummary(sf,sc.pct):`<p class="legend" style="margin-top:10px">Ende pa vetëvlerësim nga ${esc(tname)}.</p>`}
+      ${sf?selfSummary(sf,sc.pct)+'<p><button class="btn small" id="delSelf" style="color:var(--bad)">Fshi vetëvlerësimin</button></p>':`<p class="legend" style="margin-top:10px">Ende pa vetëvlerësim nga ${esc(tname)}.</p>`}
     </div>
-    <div class="savebar"><span class="msg" id="saved">${d.savedAt?"Ruajtur "+esc(d.savedAt):"Ende pa ruajtur"}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dlObs">Shkarko për printim</button><button class="btn" id="cancel">Mbyll</button><button class="btn primary" id="save">Ruaj</button></span></div>
+    <div class="savebar"><span class="msg" id="saved">${d.savedAt?"Ruajtur "+esc(d.savedAt):"Ende pa ruajtur"}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dlObs">Shkarko për printim</button><button class="btn" id="delObs" style="color:var(--bad)">Fshi të dhënat</button><button class="btn" id="cancel">Mbyll</button><button class="btn primary" id="save">Ruaj</button></span></div>
   </section>`;
 }
 function selfSummary(sf,obsPct){
@@ -617,6 +630,12 @@ function bindForm(){
   $("#copyLink").onclick=async()=>{const i=$("#linkIn");try{await navigator.clipboard.writeText(i.value);toast("Lidhja u kopjua.");}catch(e){i.focus();i.select();toast("Zgjidhe lidhjen dhe kopjoje me Ctrl+C.");}};
   $("#openSelf").onclick=()=>{state.vv=o.id;history.replaceState(null,"","#vv-"+o.id);render();window.scrollTo(0,0);};
   $("#dlObs").onclick=()=>downloadHtml("vezhgim-"+slug(d.teacher||o.teacher)+"-"+(d.date||"")+".html",docShell("Fletë vëzhgimi "+(o.teacher||d.teacher),obsPage(o,d,state.selfForms[o.id])));
+  $("#delObs").onclick=async()=>{
+    if(!confirm(o.extra?"Të fshij këtë vëzhgim shtesë?":"Të fshij të dhënat e plotësuara të këtij vëzhgimi? Ai mbetet në grafik si i planifikuar."))return;
+    const r=await delDoc("obs",o.id);if(!r.ok){toast("Nuk u fshi. "+r.err);return;}
+    delete state.obsDocs[o.id];state.openObj=null;state.draft=null;render();toast("U fshi.");};
+  const ds=$("#delSelf");if(ds)ds.onclick=async()=>{if(!confirm("Të fshij vetëvlerësimin e mësuesit për këtë orë?"))return;
+    try{await deleteSelf(o.id);delete state.selfForms[o.id];toast("Vetëvlerësimi u fshi.");render();}catch(e){toast("Nuk u fshi. "+errText(e));}};
   $("#save").onclick=async()=>{
     const msg=$("#saved");const now=new Date();const stamp=fmtShort(today())+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
     if(!d.date){msg.className="msg err";msg.textContent="Zgjidh datën e vëzhgimit para ruajtjes.";return;}
@@ -679,34 +698,53 @@ function bindSelf(admin){
 
 /* ---------- Veprimtaritë, Matura, Mësuesit ---------- */
 function veprimtarite(){
-  const groups=[...new Set(TASKS.map(t=>t.g))].filter(g=>g!==GM);const f=state.tfilter;
+  const groups=[...new Set(TL().map(t=>t.g))].filter(g=>g!==GM);const f=state.tfilter;
   const chip=(v,l)=>`<button class="chip" data-tf="${esc(v)}" aria-pressed="${f===v}">${esc(l)}</button>`;
-  const shown=TASKS.filter(t=>t.g!==GM).filter(t=>f==="all"||(f==="vonuar"?(!taskDone(t.id)&&t.e&&t.e<today()):f==="hapur"?!taskDone(t.id):t.g===f));
+  const hiddenT=TASKS.filter(t=>(state.taskDocs[t.id]||{}).hidden);
+  const shown=f==="fshira"?[]:TL().filter(t=>t.g!==GM).filter(t=>f==="all"||(f==="vonuar"?(!taskDone(t.id)&&t.e&&t.e<today()):f==="hapur"?!taskDone(t.id):t.g===f));
   const byG={};shown.forEach(t=>(byG[t.g]=byG[t.g]||[]).push(t));
-  return `<div class="filters">${chip("all","Të gjitha")}${chip("hapur","Të pakryera")}${chip("vonuar","Vonuar")}${groups.map(g=>chip(g,g)).join("")}</div>
-  ${Object.keys(byG).map(g=>`<section class="panel" style="margin-bottom:14px"><h2>${esc(g)} <span class="muted" style="font-weight:400;font-size:13px">· ${byG[g].filter(t=>taskDone(t.id)).length}/${byG[g].length}</span></h2>${byG[g].map(taskHtml).join("")}</section>`).join("")||`<div class="empty">Asnjë veprimtari me këtë filtër.</div>`}`;
+  const addForm=`<details class="panel" style="margin-bottom:14px"><summary><strong>+ Veprimtari e re</strong></summary><div class="grid2" style="margin-top:10px">
+    <label class="f">Grupi<select id="nt_g">${[...new Set(TL().map(t=>t.g))].map(g=>`<option>${esc(g)}</option>`).join("")}<option>Të tjera</option></select></label>
+    <label class="f">Afati (tekst)<input id="nt_k" placeholder="p.sh. 10–20.12.2026"></label>
+    <label class="f">Fillimi<input type="date" id="nt_s"></label><label class="f">Fundi<input type="date" id="nt_e"></label>
+    <label class="f">Prova<input id="nt_p" placeholder="p.sh. Raport"></label></div>
+    <label class="f" style="margin-top:10px">Veprimtaria<input id="nt_t"></label>
+    <div style="margin-top:10px"><button class="btn primary small" id="nt_go">Shto veprimtarinë</button> <span class="msg" id="nt_m"></span></div></details>`;
+  const restore=f==="fshira"?`<section class="panel" style="margin-bottom:14px"><h2>Veprimtari të fshira</h2>${hiddenT.length?hiddenT.map(t=>`<div class="task" style="grid-template-columns:1fr auto"><div>${esc(t.t)}<div class="muted" style="font-size:13px">${esc(t.k)} · ${esc(t.g)}</div></div><button class="btn small" data-restore="${t.id}">Rikthe</button></div>`).join(""):`<div class="empty">Asnjë veprimtari e fshirë.</div>`}</section>`:"";
+  return planPanel()+addForm+`<div class="filters">${chip("all","Të gjitha")}${chip("hapur","Të pakryera")}${chip("vonuar","Vonuar")}${groups.map(g=>chip(g,g)).join("")}${chip("fshira","Të fshirat ("+hiddenT.length+")")}</div>
+  ${restore}${f==="fshira"?"":""}${Object.keys(byG).map(g=>`<section class="panel" style="margin-bottom:14px"><h2>${esc(g)} <span class="muted" style="font-weight:400;font-size:13px">· ${byG[g].filter(t=>taskDone(t.id)).length}/${byG[g].length}</span></h2>${byG[g].map(taskHtml).join("")}</section>`).join("")||`<div class="empty">Asnjë veprimtari me këtë filtër.</div>`}`;
 }
 function taskHtml(t){
   const d=state.taskDocs[t.id]||{},[st,cl]=taskStatus(t);
   return `<div class="task ${d.done?"done":""}" data-t="${t.id}"><input type="checkbox" ${d.done?"checked":""} aria-label="Kryer"><div class="tt">${esc(t.t)}</div>
   <div class="meta"><span>${esc(t.k)}</span>${t.p?`<span>Provë: ${esc(t.p)}</span>`:""}${pill(st,cl)}${d.done&&d.doneOn?`<span>kryer më ${esc(fmtShort(d.doneOn))}</span>`:""}</div>
-  <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button></div></div>`;
+  <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button><button class="btn small tdel" style="color:var(--bad)">Fshi</button></div></div>`;
 }
-function bindTasks(){view.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{state.tfilter=b.dataset.tf;render();});bindTaskRows(view);}
+function bindTasks(){view.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{state.tfilter=b.dataset.tf;render();});bindTaskRows(view);bindPlan();
+  view.querySelectorAll("[data-restore]").forEach(b=>b.onclick=async()=>{const id=b.dataset.restore,old=state.taskDocs[id]||{};const r=await setDoc("tasks",id,{...old,hidden:false});if(r.ok){state.taskDocs[id]={...old,hidden:false};render();}else toast("Nuk u rikthye. "+r.err);});
+  const go=$("#nt_go");if(go)go.onclick=async()=>{const m=$("#nt_m"),t=$("#nt_t").value.trim();if(!t){m.className="msg err";m.textContent="Shkruaj veprimtarinë.";return;}
+    const s=$("#nt_s").value||null,e=$("#nt_e").value||null,id="c-"+Date.now().toString(36);
+    const doc={custom:true,g:$("#nt_g").value,t,k:$("#nt_k").value.trim()||(s&&e?fmtShort(s)+" – "+fmtShort(e):""),s,e,p:$("#nt_p").value.trim(),done:false,doneOn:"",note:""};
+    const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("Veprimtaria u shtua.");render();}else{m.className="msg err";m.textContent="Nuk u ruajt: "+r.err;}};
+}
 function bindTaskRows(root){
   root.querySelectorAll(".task[data-t]").forEach(row=>{
     const id=row.dataset.t,cb=row.querySelector("input[type=checkbox]"),inp=row.querySelector(".note input"),btn=row.querySelector(".note button");
-    const save=async(done)=>{const old=state.taskDocs[id]||{};const doc={done,doneOn:done?(old.doneOn||today()):"",note:inp.value};
+    const save=async(done)=>{const old=state.taskDocs[id]||{};const doc={...old,done,doneOn:done?(old.doneOn||today()):"",note:inp.value};
       const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;return true;}toast("Nuk u ruajt. "+r.err);return false;};
+    const del=row.querySelector(".tdel");
+    if(del)del.onclick=async()=>{const cus=id.startsWith("c-");if(!confirm(cus?"Të fshij këtë veprimtari?":"Të fshij këtë veprimtari nga plani? Mund ta rikthesh nga filtri «Të fshirat»."))return;
+      const old=state.taskDocs[id]||{};const r=cus?await delDoc("tasks",id):await setDoc("tasks",id,{...old,hidden:true});
+      if(!r.ok){toast("Nuk u fshi. "+r.err);return;}if(cus)delete state.taskDocs[id];else state.taskDocs[id]={...old,hidden:true};render();};
     cb.onchange=async()=>{const ok=await save(cb.checked);if(!ok)cb.checked=!cb.checked;else render();};
     btn.onclick=async()=>{btn.disabled=true;const ok=await save(cb.checked);btn.disabled=false;if(ok){btn.textContent="Ruajtur";setTimeout(()=>{btn.textContent="Ruaj";},1500);}};
   });
 }
 function matura(){
-  const tasks=TASKS.filter(t=>t.g===GM);
+  const tasks=TL().filter(t=>t.g===GM);
   const rows=MCLASSES.map(c=>{const key=mkey(c);const d=state.matDocs[key]||{steps:{},note:""};
     return `<div class="mrow" data-c="${esc(key)}"><strong>${esc(c)}</strong><div><div class="steps">${MSTEPS.map(([k,l])=>`<label><input type="checkbox" data-s="${k}" ${d.steps&&d.steps[k]?"checked":""}> ${esc(l)}</label>`).join("")}</div>
-      <div style="display:flex;gap:6px;margin-top:8px"><input class="mnote" placeholder="Shënim për klasën" value="${esc(d.note||"")}" style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0" aria-label="Shënim për ${esc(c)}"><button class="btn small msave">Ruaj</button></div></div></div>`;}).join("");
+      <div style="display:flex;gap:6px;margin-top:8px"><input class="mnote" placeholder="Shënim për klasën" value="${esc(d.note||"")}" style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0" aria-label="Shënim për ${esc(c)}"><button class="btn small msave">Ruaj</button><button class="btn small mclear" style="color:var(--bad)">Pastro</button></div></div></div>`;}).join("");
   return `<section class="panel" style="margin-bottom:14px"><h2>Matura Shtetërore 2027 · hapat e administratorit</h2>
     <p class="sub" style="margin-bottom:6px">Provimet: 07–28.06.2027. Datat e brendshme janë orientuese deri sa të dalë udhëzimi vjetor i MASR.</p>${tasks.map(taskHtml).join("")}</section>
   <section class="panel"><h2>Ecuria sipas klasave</h2>${rows}</section>`;
@@ -718,6 +756,7 @@ function bindMatura(){
     const save=async()=>{const steps={};row.querySelectorAll("input[data-s]").forEach(i=>steps[i.dataset.s]=i.checked);
       const doc={steps,note:row.querySelector(".mnote").value};const r=await setDoc("matura",key,doc);if(r.ok){state.matDocs[key]=doc;return true;}toast("Nuk u ruajt. "+r.err);return false;};
     row.querySelectorAll("input[data-s]").forEach(i=>i.onchange=()=>save());
+    row.querySelector(".mclear").onclick=async()=>{if(!confirm("Të pastroj të dhënat e kësaj klase?"))return;const r=await delDoc("matura",key);if(r.ok){delete state.matDocs[key];render();}else toast("Nuk u pastrua. "+r.err);};
     const b=row.querySelector(".msave");b.onclick=async()=>{b.disabled=true;const ok=await save();b.disabled=false;if(ok){b.textContent="Ruajtur";setTimeout(()=>{b.textContent="Ruaj";},1500);}};
   });
 }
@@ -799,13 +838,13 @@ function doneObs(list){return list.filter(o=>o.doc.status==="kryer"||(o.doc.scor
 function taskTable(list){return `<table><tr><th>Veprimtaria</th><th>Afati</th><th>Prova</th><th>Gjendja</th><th>Shënim</th></tr>${list.map(t=>{const d=state.taskDocs[t.id]||{};return `<tr><td>${esc(t.t)}</td><td>${esc(t.k)}</td><td>${esc(t.p)}</td><td>${d.done?"Kryer "+esc(fmtShort(d.doneOn)):esc(taskStatus(t)[0])}</td><td>${esc(d.note)}</td></tr>`;}).join("")}</table>`;}
 function fullDossier(){
   const obs=allObs();
-  const groups=[...new Set(TASKS.map(t=>t.g))];
+  const groups=[...new Set(TL().map(t=>t.g))];
   const mrows=MCLASSES.map(c=>{const d=state.matDocs[mkey(c)]||{steps:{}};return `<tr><td>${esc(c)}</td>${MSTEPS.map(([k])=>`<td class="num">${d.steps&&d.steps[k]?"✓":"–"}</td>`).join("")}<td>${esc(d.note)}</td></tr>`;}).join("");
   return `<div class="page"><h1>Dosja e nëndrejtorit</h1><div class="sm">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027</div>
   <p>Nëndrejtor: Mendim Mera · Përgatitur më ${esc(fmtShort(today()))}</p>
   <h2>Grafiku i monitorimit të orëve mësimore</h2>${summaryTable(obs)}</div>`+
   doneObs(obs).map(o=>obsPage(o,{...o.doc,date:o.date,klasa:o.klasa,ora:o.ora,shift:o.shift},state.selfForms[o.id])).join("")+
-  `<div class="page"><h1>Veprimtaritë e planit vjetor</h1>${groups.map(g=>`<h2>${esc(g)}</h2>${taskTable(TASKS.filter(t=>t.g===g))}`).join("")}
+  `<div class="page"><h1>Orari javor i nëndrejtorit (4 orë në javë)</h1>${weekTable()}</div><div class="page"><h1>Veprimtaritë e planit vjetor</h1>${groups.map(g=>`<h2>${esc(g)}</h2>${taskTable(TL().filter(t=>t.g===g))}`).join("")}
   <h2>Matura Shtetërore: ecuria sipas klasave</h2><table><tr><th>Klasa</th>${MSTEPS.map(s=>`<th class="num">${esc(s[1])}</th>`).join("")}<th>Shënim</th></tr>${mrows}</table></div>`;
 }
 function teacherDossier(t){
@@ -862,9 +901,12 @@ function openDataDialog(){
   let dlg=$("#dataDlg");if(dlg)dlg.remove();
   dlg=document.createElement("dialog");dlg.id="dataDlg";
   dlg.style.cssText="max-width:560px;width:calc(100% - 32px);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:18px";
-  dlg.innerHTML='<h2>Importo vetëvlerësim nga mësuesi</h2><p class="sub" style="margin:0 0 8px">Ngjit kodin që të dërgoi mësuesi, ose zgjidh skedarin(et) .json.</p><textarea id="impTa" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="VETEV1:…"></textarea><input type="file" id="impFile" accept=".json,application/json" multiple style="margin-top:8px"><div style="margin-top:8px"><button class="btn primary small" id="impGo">Importo</button> <span class="msg" id="impMsg"></span></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h2>Kopje rezervë</h2><p class="sub" style="margin:0 0 8px">Të gjitha të dhënat ruhen vetëm në këtë shfletues. Shkarko një kopje rregullisht dhe ruaje diku tjetër.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn small" id="bkGo">Shkarko kopjen rezervë</button><label class="btn small" style="cursor:pointer">Rikthe nga kopja<input type="file" id="bkFile" accept=".json,application/json" hidden></label></div><p class="msg" id="bkMsg" style="margin-top:8px"></p><div style="text-align:right;margin-top:12px"><button class="btn small" id="dlgClose">Mbyll</button></div>';
+  dlg.innerHTML='<h2>Importo vetëvlerësim nga mësuesi</h2><p class="sub" style="margin:0 0 8px">Ngjit kodin që të dërgoi mësuesi, ose zgjidh skedarin(et) .json.</p><textarea id="impTa" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="VETEV1:…"></textarea><input type="file" id="impFile" accept=".json,application/json" multiple style="margin-top:8px"><div style="margin-top:8px"><button class="btn primary small" id="impGo">Importo</button> <span class="msg" id="impMsg"></span></div><div id="bkWrap"><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h2>Kopje rezervë</h2><p class="sub" style="margin:0 0 8px">Të gjitha të dhënat ruhen vetëm në këtë shfletues. Shkarko një kopje rregullisht dhe ruaje diku tjetër.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn small" id="bkGo">Shkarko kopjen rezervë</button><label class="btn small" style="cursor:pointer">Rikthe nga kopja<input type="file" id="bkFile" accept=".json,application/json" hidden></label></div><p class="msg" id="bkMsg" style="margin-top:8px"></p></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h2>Fshi të dhënat</h2><p class="sub" style="margin:0 0 8px">Fshin të gjitha vëzhgimet, veprimtaritë, orët javore, Maturën, vetëvlerësimet dhe dokumentin e planit. Nuk kthehet.</p><button class="btn small" id="wipeGo" style="color:var(--bad)">Fshi gjithçka…</button> <span class="msg" id="wipeMsg"></span><div style="text-align:right;margin-top:12px"><button class="btn small" id="dlgClose">Mbyll</button></div>';
   document.body.appendChild(dlg);dlg.showModal();
   $("#dlgClose").onclick=()=>dlg.close();
+  $("#bkWrap").hidden=!window.__STANDALONE;
+  $("#wipeGo").onclick=async()=>{const m=$("#wipeMsg");if((prompt("Kjo fshin gjithçka. Shkruaj FSHI për të vazhduar.")||"").trim()!=="FSHI")return;
+    m.className="msg";m.textContent="Duke fshirë…";const n=await wipeAll();m.className="msg "+(n.err?"err":"ok");m.textContent=n.err?"U fshinë "+n.n+"; gabim: "+n.err:"U fshinë "+n.n+" dokumente.";};
   $("#impGo").onclick=async()=>{
     const m=$("#impMsg");m.className="msg";let n=0,bad=[];
     const texts=[];const t=$("#impTa").value.trim();if(t)texts.push(t);
@@ -890,9 +932,177 @@ function openDataDialog(){
 }
 $("#dataBtn").onclick=openDataDialog;
 
+
+/* ---------- Fshirja ---------- */
+async function delDoc(coll,id){
+  if(!db)return {ok:false,err:"db-null"};
+  try{await withTimeout(db.collection(coll).doc(id).delete(),12000);return {ok:true};}
+  catch(e){console.error("delete "+coll+"/"+id,e);return {ok:false,err:errText(e)};}
+}
+async function deleteSelf(oid){
+  for(const {docId,forms} of (state.selfSrc[oid]||[])){
+    const rest={...forms};delete rest[oid];
+    if(Object.keys(rest).length)await withTimeout(db.collection("selfeval").doc(docId).set({forms:rest}),12000);
+    else await withTimeout(db.collection("selfeval").doc(docId).delete(),12000);
+  }
+}
+async function wipeAll(){
+  const jobs=[];
+  Object.keys(state.obsDocs).forEach(id=>jobs.push(["obs",id]));
+  Object.keys(state.taskDocs).forEach(id=>jobs.push(["tasks",id]));
+  Object.keys(state.matDocs).forEach(id=>jobs.push(["matura",id]));
+  [...new Set(Object.values(state.selfSrc).flat().map(x=>x.docId))].forEach(id=>jobs.push(["selfeval",id]));
+  let n=0,err="";
+  for(const [c,id] of jobs){const r=await delDoc(c,id);if(r.ok)n++;else{err=r.err;break;}}
+  await delDoc("files","plan-meta");await delDoc("files","plan-data");
+  state.planMeta=undefined;
+  return {n,err};
+}
+
+/* ---------- Orari javor: 4 orë në javë (3 cilësia e mësimdhënies + 1 dokumentim) ---------- */
+const QN=3,DN=1,G12END="2027-06-04";
+const DEFAULT_OFF=["2026-12-21","2026-12-28","2027-01-04","2027-03-29"];
+function offSet(){const d=state.taskDocs["cfg-weeks"];return new Set(d&&Array.isArray(d.off)?d.off:DEFAULT_OFF);}
+const QFILL=["Kontroll i planifikimit mujor dhe ditor të mësuesve të Matematikës","Kontroll i planifikimit mujor dhe ditor të mësuesve të Fizikës","Kontroll i planifikimit mujor dhe ditor të mësuesve të TIK-ut","Takim me mësuesit e ekipit lëndor për rekomandimet e vëzhgimeve","Analizë e rezultateve të nxënësve dhe e testeve të periudhës","Kontroll i detyrave të shtëpisë dhe i kuadernave të nxënësve","Mbështetje metodike për mësuesit (metoda, diferencim, TIK)","Kontroll i përdorimit të laboratorit dhe i pajisjeve (Fizikë, TIK)","Vëzhgim i shkurtër (10–15 min) i orëve mësimore"];
+const DFILL=["Dokumentim: fletët e vëzhgimit, procesverbalet dhe dosja e monitorimit","Kontroll i afateve në SMIP (neni 13) dhe raportim","Përgatitje e raporteve dhe e analizave të monitorimit","Plotësim i dosjes së Maturës dhe i dokumentacionit në SMIP"];
+const hf=n=>{n=Math.round(n*2)/2;return n%1?n.toFixed(1).replace(".",","):String(n);};
+function mondayOf(s){const [y,m,d]=s.split("-").map(Number);const dow=(new Date(Date.UTC(y,m-1,d)).getUTCDay()+6)%7;return addDays(s,-dow);}
+function weekList(){const a=[];let w="2026-09-14";while(w<="2027-06-14"){a.push(w);w=addDays(w,7);}return a;}
+function periodOf(w){const p=PERIODS.find(x=>w<=x[2]&&addDays(w,6)>=x[1]);return p?"Periudha "+p[0]:"pushim";}
+function weekCalc(w){
+  const off=offSet().has(w),end=addDays(w,6),items=[];
+  allObs().filter(o=>o.date>=w&&o.date<=end&&o.doc.status!=="shtyrë"&&o.doc.status!=="pa-kryer"&&o.doc.status!=="hequr").forEach(o=>{
+    items.push({auto:true,k:"q",h:1,t:"Vëzhgim i orës: "+o.teacher+" · "+o.subject+" · "+o.klasa+" ("+fmtShort(o.date)+")"});
+    items.push({auto:true,k:"q",h:0.5,t:"Diskutim i rekomandimeve me "+o.teacher});
+    items.push({auto:true,k:"d",h:0.5,t:"Dokumentim i vëzhgimit (fletë, SMIP, dosje): "+o.teacher});
+  });
+  ((state.taskDocs["h-"+w]||{}).items||[]).forEach(i=>items.push({...i}));
+  const sum=k=>items.filter(i=>i.k===k).reduce((a,i)=>a+(+i.h||0),0);
+  const tl=TL().filter(t=>t.e&&t.e>=w&&t.e<=end&&!taskDone(t.id));
+  const tasks=tl.filter(t=>t.g!==GM),mtasks=tl.filter(t=>t.g===GM);
+  return {off,items,q:sum("q"),d:sum("d"),m:sum("m"),tasks,mtasks,qt:off?0:QN,dt:off?0:DN};
+}
+function fillItems(w,idx){
+  const c=weekCalc(w),out=[],stamp=Date.now().toString(36);let rq=c.qt-c.q,j=0;
+  while(rq>0.01){const h=Math.min(1,rq);out.push({id:"i"+stamp+out.length,k:"q",h,t:QFILL[(idx+j)%QFILL.length]});rq-=h;j++;}
+  const rd=c.dt-c.d;if(rd>0.01)out.push({id:"i"+stamp+"d",k:"d",h:rd,t:DFILL[idx%DFILL.length]});
+  return out;
+}
+async function saveWeek(w,items){const r=await setDoc("tasks","h-"+w,{items});if(r.ok)state.taskDocs["h-"+w]={items};return r;}
+function java(){
+  const wl=weekList(),cur=mondayOf(today()),cs=wl.map(weekCalc);
+  const TQ=cs.reduce((a,c)=>a+c.q,0),TD=cs.reduce((a,c)=>a+c.d,0),GQ=cs.reduce((a,c)=>a+c.qt,0),GD=cs.reduce((a,c)=>a+c.dt,0);
+  const tw=cs.filter(c=>!c.off).length,tw12=wl.filter((w,i)=>!cs[i].off&&w<=G12END).length;
+  const gaps=cs.filter(c=>!c.off&&(c.q<c.qt||c.d<c.dt)).length;
+  const f=state.wfilter;
+  const chip=(v,l)=>`<button class="chip" data-wf="${v}" aria-pressed="${f===v}">${l}</button>`;
+  const cards=wl.map((w,idx)=>{const c=cs[idx];if(f==="gaps"&&(c.off||(c.q>=c.qt&&c.d>=c.dt)))return"";
+    const open=state.openWk[w]!==undefined?state.openWk[w]:w===cur;
+    const bq=c.off?pill("pa mësim",""):pill("Cilësi "+hf(c.q)+"/"+c.qt,c.q>=c.qt?"good":c.q>0?"warn":"bad");
+    const bm=c.m?pill("Matura "+hf(c.m)+" orë (jashtë normës)","acc"):"",b12=w>G12END?pill("pa klasat e 12","warn"):"";
+    const bd=c.off?"":pill("Dok. "+hf(c.d)+"/"+c.dt,c.d>=c.dt?"good":c.d>0?"warn":"bad");
+    return `<details class="panel wk" data-w="${w}" style="margin-bottom:10px" ${open?"open":""}><summary><strong>${fmtShort(w)} – ${fmtShort(addDays(w,4))}</strong><span class="muted">${esc(periodOf(w))}</span>${w===cur?pill("kjo javë","acc"):""}${bq}${bd}${bm}${b12}</summary>
+    ${c.items.length?c.items.map(i=>`<div class="it"><div>${esc(i.t)} ${pill(i.k==="q"?"cilësi":i.k==="d"?"dokumentim":"Matura, jashtë normës",i.k==="m"?"acc":"")}${i.auto?" "+pill("automatike","acc"):""}</div><div class="mono">${hf(i.h)} orë ${i.auto?"":`<button class="btn small witem-del" data-w="${w}" data-i="${esc(i.id)}" style="color:var(--bad)">Fshi</button>`}</div></div>`).join(""):`<div class="muted" style="padding:8px 0">Asnjë orë e planifikuar.</div>`}
+    ${c.tasks.length?`<p class="legend">Afate këtë javë: ${c.tasks.map(t=>esc(t.t)).join("; ")}</p>`:""}
+    ${c.mtasks.length?`<p class="legend">Afate të Maturës (jashtë normës): ${c.mtasks.map(t=>esc(t.t)).join("; ")}</p>`:""}
+    <label style="font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" class="wk-off" ${c.off?"checked":""}> Java pa mësim (pushim)</label>
+    ${c.off?"":`<div class="addrow"><select class="wk-k"><option value="q">Cilësi</option><option value="d">Dokumentim</option><option value="m">Matura (jashtë normës)</option></select><input class="wk-h" type="number" step="0.5" min="0.5" value="1" style="width:76px" aria-label="Orë"><input class="wk-t" placeholder="Veprimtaria" style="flex:1 1 220px;min-width:0"><button class="btn small wk-add">Shto</button><button class="btn small wk-fill">Plotëso me propozim</button></div>`}</details>`;}).join("");
+  return `<div class="tiles"><div class="tile"><div class="n">${hf(TQ)}/${hf(GQ)}</div><div class="l">Orë cilësie të planifikuara (norma 3 në javë)</div><div class="bar"><i style="width:${GQ?Math.min(100,TQ/GQ*100):0}%"></i></div></div>
+    <div class="tile"><div class="n">${hf(TD)}/${hf(GD)}</div><div class="l">Orë dokumentimi të planifikuara (norma 1 në javë)</div><div class="bar"><i style="width:${GD?Math.min(100,TD/GD*100):0}%"></i></div></div>
+    <div class="tile"><div class="n">${tw}</div><div class="l">Javë mësimore (klasat e 12-ta: ${tw12}, deri më 04.06.2027)</div></div>
+    <div class="tile"><div class="n">${gaps}</div><div class="l">Javë me orë të pa plotësuara</div></div></div>
+  <div class="filters">${chip("all","Të gjitha javët")}${chip("gaps","Vetëm javët me mungesë")}
+    <button class="btn small" id="wfillNow">Plotëso nga java aktuale e tutje</button><button class="btn small" id="wfillAll">Plotëso të gjitha javët</button><button class="btn small" id="wclear" style="color:var(--bad)">Pastro orët e shtuara</button></div>
+  <p class="legend">Norma: 4 orë në javë sipas Udhëzimit 14/2023 (3 për cilësinë e mësimdhënies, 1 për dokumentimin), për 36 javë mësimore. Puna e administratorit të Maturës shtohet si «Matura» dhe nuk llogaritet në normë. Vëzhgimi llogaritet 1 orë, diskutimi 0,5 orë dhe dokumentimi 0,5 orë. Ato që mungojnë i plotëson me propozim që mund ta ndryshosh ose ta fshish.</p>
+  ${cards}`;
+}
+function bindJava(){
+  view.querySelectorAll("[data-wf]").forEach(b=>b.onclick=()=>{state.wfilter=b.dataset.wf;render();});
+  view.querySelectorAll("details.wk").forEach(det=>{
+    const w=det.dataset.w,idx=weekList().indexOf(w);
+    det.ontoggle=()=>{state.openWk[w]=det.open;};
+    const cur=()=>((state.taskDocs["h-"+w]||{}).items||[]);
+    const add=det.querySelector(".wk-add");
+    if(add)add.onclick=async()=>{const t=det.querySelector(".wk-t").value.trim(),h=+det.querySelector(".wk-h").value;if(!t||!(h>0)){toast("Shkruaj veprimtarinë dhe orët.");return;}
+      const it={id:"i"+Date.now().toString(36),k:det.querySelector(".wk-k").value,h,t};state.openWk[w]=true;const r=await saveWeek(w,cur().concat([it]));if(r.ok)render();else toast("Nuk u ruajt. "+r.err);};
+    const offc=det.querySelector(".wk-off");
+    offc.onchange=async()=>{const set=offSet();if(offc.checked)set.add(w);else set.delete(w);state.openWk[w]=true;
+      const arr=[...set].sort();const r=await setDoc("tasks","cfg-weeks",{off:arr});if(r.ok){state.taskDocs["cfg-weeks"]={off:arr};render();}else{offc.checked=!offc.checked;toast("Nuk u ruajt. "+r.err);}};
+    const fill=det.querySelector(".wk-fill");
+    if(fill)fill.onclick=async()=>{const add=fillItems(w,idx);if(!add.length){toast("Kjo javë është e plotë.");return;}state.openWk[w]=true;const r=await saveWeek(w,cur().concat(add));if(r.ok)render();else toast("Nuk u ruajt. "+r.err);};
+    det.querySelectorAll(".witem-del").forEach(b=>b.onclick=async()=>{state.openWk[w]=true;const r=await saveWeek(w,cur().filter(i=>i.id!==b.dataset.i));if(r.ok)render();else toast("Nuk u fshi. "+r.err);});
+  });
+  const bulk=async(from)=>{
+    if(!confirm("Të shtoj orë propozim në javët që nuk e plotësojnë normën 4 orë?"))return;
+    const wl=weekList();let n=0;
+    for(let i=0;i<wl.length;i++){const w=wl[i];if(from&&w<from)continue;const add=fillItems(w,i);if(!add.length)continue;
+      const old=((state.taskDocs["h-"+w]||{}).items||[]);const r=await saveWeek(w,old.concat(add));if(!r.ok){toast("Nuk u ruajt. "+r.err);break;}n++;}
+    toast(n+" javë u plotësuan.");render();};
+  $("#wfillNow").onclick=()=>bulk(mondayOf(today()));$("#wfillAll").onclick=()=>bulk(null);
+  $("#wclear").onclick=async()=>{if(!confirm("Të fshij të gjitha orët e shtuara me dorë ose me propozim? Vëzhgimet automatike mbeten."))return;
+    let n=0;for(const id of Object.keys(state.taskDocs).filter(x=>x.startsWith("h-"))){const r=await delDoc("tasks",id);if(r.ok){delete state.taskDocs[id];n++;}else{toast("Nuk u fshi. "+r.err);break;}}
+    toast(n+" javë u pastruan.");render();};
+}
+function weekTable(){
+  return `<table><tr><th>Java</th><th class="num">Cilësi</th><th class="num">Dok.</th><th class="num">Matura (jashtë normës)</th><th>Veprimtaritë</th></tr>${weekList().map(w=>{const c=weekCalc(w);
+    return `<tr><td>${esc(fmtShort(w))}–${esc(fmtShort(addDays(w,4)))}</td><td class="num">${hf(c.q)}/${c.qt}</td><td class="num">${hf(c.d)}/${c.dt}</td><td class="num">${c.m?hf(c.m):"–"}</td><td>${c.off?"Pa mësim":c.items.map(i=>esc(i.t)+" ("+hf(i.h)+" orë)").join("; ")}</td></tr>`;}).join("")}</table>`;
+}
+
+/* ---------- Plani vjetor: dokumenti dhe importi i veprimtarive ---------- */
+const PLAN_MAX=600*1024;
+function b64(buf){let s="";const a=new Uint8Array(buf);for(let i=0;i<a.length;i+=0x8000)s+=String.fromCharCode.apply(null,a.subarray(i,i+0x8000));return btoa(s);}
+function saveBlob(name,type,bytes){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([bytes],{type:type||"application/octet-stream"}));a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
+function planPanel(){
+  const m=state.planMeta;
+  return `<section class="panel" style="margin-bottom:14px"><h2>Plani vjetor i nëndrejtorit</h2>
+  <p class="sub" style="margin-bottom:8px">Ngarko dokumentin e planit (PDF, Word, Excel ose foto; deri në 600 KB) që ta kesh këtu dhe ta shkarkosh kur kërkohet nga kontrolli.</p>
+  ${m?`<p><strong>${esc(m.name)}</strong> <span class="muted">· ${Math.round((m.size||0)/1024)} KB · ngarkuar ${esc(fmtShort((m.at||"").slice(0,10)))}</span></p><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"><button class="btn small" id="planDl">Shkarko</button><button class="btn small" id="planDel" style="color:var(--bad)">Fshi dokumentin</button></div>`:state.planMeta===undefined?`<p class="muted">Duke kontrolluar…</p>`:`<p class="muted">Asnjë dokument i ngarkuar.</p>`}
+  ${state.planErr?`<p class="msg err">${esc(state.planErr)}</p>`:""}
+  <label class="btn small" style="cursor:pointer;display:inline-block">${m?"Zëvendëso dokumentin":"Ngarko dokumentin"}<input type="file" id="planFile" hidden accept=".pdf,.doc,.docx,.xls,.xlsx,.odt,.ods,.txt,.jpg,.jpeg,.png"></label> <span class="msg" id="planMsg"></span>
+  <details style="margin-top:14px"><summary><strong>Importo veprimtari nga një tabelë</strong></summary>
+    <p class="sub" style="margin:8px 0">Një veprimtari për rresht, kolonat të ndara me pikëpresje ose me tab (mund t'i kopjosh nga Excel): grupi; veprimtaria; afati; fillimi; fundi; prova. Datat si 15.10.2026. Kolonat e fundit mund të mbeten bosh.</p>
+    <textarea id="impTasks" rows="5" placeholder="Cilësia e mësimdhënies; Kontroll i planifikimit mujor; tetor 2026; 01.10.2026; 31.10.2026; Fleta e kontrollit"></textarea>
+    <input type="file" id="impTasksFile" accept=".csv,.txt,text/csv,text/plain" style="margin-top:6px"><div style="margin-top:8px"><button class="btn primary small" id="impTasksGo">Importo</button> <button class="btn small" id="impTasksTpl">Shkarko modelin</button> <span class="msg" id="impTasksMsg"></span></div></details></section>`;
+}
+function parseD(s){s=(s||"").trim();let m=s.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);if(m)return m[3]+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0");return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:null;}
+async function importTasks(text){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);let n=0;const stamp=Date.now().toString(36);
+  for(const l of lines){const sep=l.includes("\t")?"\t":l.includes(";")?";":",";const c=l.split(sep).map(x=>x.trim().replace(/^"|"$/g,""));
+    if(/^grupi$/i.test(c[0])||c.length<2||!c[1])continue;
+    const id="c-"+stamp+n,s0=parseD(c[3]),e0=parseD(c[4]);
+    const doc={custom:true,g:c[0]||"Të tjera",t:c[1],k:c[2]||(s0&&e0?fmtShort(s0)+" – "+fmtShort(e0):""),s:s0,e:e0,p:c[5]||"",done:false,doneOn:"",note:""};
+    const r=await setDoc("tasks",id,doc);if(!r.ok)return {n,err:r.err};state.taskDocs[id]=doc;n++;}
+  return {n};
+}
+function bindPlan(){
+  if(state.planMeta===undefined&&!state.planLoading&&db){state.planLoading=true;
+    db.collection("files").doc("plan-meta").get().then(s=>{state.planMeta=s.exists?s.data():null;state.planErr="";}).catch(e=>{state.planMeta=null;state.planErr="Dokumenti nuk lexohet: "+errText(e)+". Në Firebase shto rregullin për koleksionin «files» (lexim e shkrim për përdoruesin e hyrë).";})
+    .finally(()=>{state.planLoading=false;if(state.tab==="veprimtarite"&&!state.openObj&&!state.vv)render();});}
+  const pf=$("#planFile");if(!pf)return;
+  pf.onchange=async()=>{const f=pf.files[0],m=$("#planMsg");if(!f)return;
+    if(f.size>PLAN_MAX){m.className="msg err";m.textContent="Skedari është "+Math.round(f.size/1024)+" KB; kufiri është 600 KB. Ngjeshe ose ruaje si PDF më të vogël.";return;}
+    m.className="msg";m.textContent="Duke ngarkuar…";
+    try{const data=b64(await f.arrayBuffer());
+      await withTimeout(db.collection("files").doc("plan-data").set({data}),20000);
+      const meta={name:f.name,type:f.type||"application/octet-stream",size:f.size,at:new Date().toISOString()};
+      await withTimeout(db.collection("files").doc("plan-meta").set(meta),12000);
+      state.planMeta=meta;state.planErr="";toast("Plani u ngarkua.");render();}
+    catch(e){m.className="msg err";m.textContent="Nuk u ngarkua: "+errText(e);}};
+  const dl=$("#planDl");if(dl)dl.onclick=async()=>{try{const s=await withTimeout(db.collection("files").doc("plan-data").get(),20000);if(!s.exists)throw new Error("Dokumenti nuk u gjet.");
+      const bin=atob(s.data().data),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);saveBlob(state.planMeta.name,state.planMeta.type,a);}catch(e){toast("Nuk u shkarkua. "+errText(e));}};
+  const del=$("#planDel");if(del)del.onclick=async()=>{if(!confirm("Të fshij dokumentin e planit?"))return;const a=await delDoc("files","plan-data"),b=await delDoc("files","plan-meta");
+    if(a.ok&&b.ok){state.planMeta=null;render();toast("Dokumenti u fshi.");}else toast("Nuk u fshi. "+(a.err||b.err));};
+  $("#impTasksFile").onchange=async e=>{const f=e.target.files[0];if(f)$("#impTasks").value=await f.text();};
+  $("#impTasksGo").onclick=async()=>{const m=$("#impTasksMsg"),t=$("#impTasks").value.trim();if(!t){m.className="msg err";m.textContent="Ngjit tabelën ose zgjidh skedarin.";return;}
+    m.className="msg";m.textContent="Duke importuar…";const r=await importTasks(t);
+    if(r.err){m.className="msg err";m.textContent="U importuan "+r.n+"; gabim: "+r.err;}else{toast(r.n+" veprimtari u importuan.");render();}};
+  $("#impTasksTpl").onclick=()=>saveBlob("model-veprimtarish.csv","text/csv;charset=utf-8","\ufeffgrupi;veprimtaria;afati;fillimi;fundi;prova\nCilësia e mësimdhënies;Kontroll i planifikimit mujor;tetor 2026;01.10.2026;31.10.2026;Fleta e kontrollit\n");
+}
+Object.assign(state,{selfSrc:{},openWk:{},wfilter:"all",planMeta:undefined,planErr:"",planLoading:false});
+
 /* ---------- Nisja ---------- */
 function route(){const h=location.hash.slice(1);state.vv=null;
-  if(h.startsWith("vv-"))state.vv=h.slice(3);else if(h.startsWith("mesues-"))state.vv=h.slice(7);else if(["pasqyra","monitorimi","veprimtarite","matura","mesuesit"].includes(h))state.tab=h;}
+  if(h.startsWith("vv-"))state.vv=h.slice(3);else if(h.startsWith("mesues-"))state.vv=h.slice(7);else if(["pasqyra","monitorimi","java","veprimtarite","matura","mesuesit"].includes(h))state.tab=h;}
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.vv=null;state.openObj=null;state.draft=null;history.replaceState(null,"","#"+state.tab);render();});
 window.addEventListener("hashchange",()=>{route();state.openObj=null;render();});
 route();render();
@@ -904,7 +1114,8 @@ $("#dossierBtn").onclick=()=>downloadHtml("dosja-nendrejtori-2026-2027.html",doc
     db=await claude.use("db");user=await claude.use("user");dlcap=await claude.use("downloads");
     if(dlcap){$("#exportBtn").hidden=false;$("#dossierBtn").hidden=false;}
     if(window.__FB_AUTH&&!window.__TEACHER&&db){const b=document.createElement("button");b.className="btn small";b.textContent="Dil";b.onclick=()=>window.__FB_AUTH.signOut().then(()=>location.reload());$("#hdrbtns").appendChild(b);}
-    if(window.__STANDALONE&&!window.__TEACHER){$("#dataBtn").hidden=false;$("#banner").innerHTML='<div class="banner">Të dhënat ruhen vetëm në këtë shfletues e pajisje. Bëj kopje rezervë herë pas here nga butoni «Të dhënat».</div>';}
+    if(!window.__TEACHER)$("#dataBtn").hidden=false;
+    if(window.__STANDALONE&&!window.__TEACHER){$("#banner").innerHTML='<div class="banner">Të dhënat ruhen vetëm në këtë shfletues e pajisje. Bëj kopje rezervë herë pas here nga butoni «Të dhënat».</div>';}
   }catch(e){console.error(e);db=null;}
   let admin=false;
   try{admin=user?await user.canEdit():false;}catch(e){admin=false;}
@@ -920,9 +1131,9 @@ $("#dossierBtn").onclick=()=>downloadHtml("dosja-nendrejtori-2026-2027.html",doc
   },e=>{if(key)state.loaded[key]=true;if(e&&e.code!=="revoked")toast("Gabim leximi ("+(e.code||"")+").");});
   sub("obs","obs","obsDocs");sub("tasks","tasks","taskDocs");sub("matura","mat","matDocs");
   db.collection("selfeval").onSnapshot(snap=>{
-    const forms={};
-    snap.docs.forEach(d=>{const fs=(d.data()||{}).forms||{};for(const[oid,f]of Object.entries(fs)){if(!forms[oid]||String(f.at||"")>String(forms[oid].at||""))forms[oid]=f;}});
-    state.selfForms=forms;if(!state.openObj&&!state.vv)render();
+    const forms={},src={};
+    snap.docs.forEach(d=>{const fs=(d.data()||{}).forms||{};for(const[oid,f]of Object.entries(fs)){(src[oid]=src[oid]||[]).push({docId:d.id,forms:fs});if(!forms[oid]||String(f.at||"")>String(forms[oid].at||""))forms[oid]=f;}});
+    state.selfForms=forms;state.selfSrc=src;if(!state.openObj&&!state.vv)render();
   },e=>{if(e&&e.code!=="revoked")toast("Gabim leximi i vetëvlerësimeve ("+(e.code||"")+").");});
 })();
 </script>
