@@ -1,0 +1,930 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Regjistri i nëndrejtorit</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one-column register with a tab bar; the observation form replaces the list when opened.
+   Palette: paper-white and ink-blue, semantic green/amber/red kept separate from the accent. */
+:root{
+  --bg:#f4f6fa; --surface:#ffffff; --fg:#16202f; --muted:#586579; --line:#d9dfe9;
+  --accent:#1f4f9a; --accent-fg:#ffffff; --accent-soft:#e5edfa;
+  --good:#17743f; --good-soft:#e1f3e8; --warn:#8f5a00; --warn-soft:#fbefd5; --bad:#b3261e; --bad-soft:#fbe4e2;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e141c; --surface:#161e29; --fg:#e5eaf2; --muted:#9aa6b8; --line:#2a3544;
+  --accent:#7fa9ee; --accent-fg:#0b1422; --accent-soft:#1b2b47;
+  --good:#5fcf8e; --good-soft:#15301f; --warn:#e3b44e; --warn-soft:#3a2f12; --bad:#f28d85; --bad-soft:#3d1c1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --surface:#161e29; --fg:#e5eaf2; --muted:#9aa6b8; --line:#2a3544;
+  --accent:#7fa9ee; --accent-fg:#0b1422; --accent-soft:#1b2b47;
+  --good:#5fcf8e; --good-soft:#15301f; --warn:#e3b44e; --warn-soft:#3a2f12; --bad:#f28d85; --bad-soft:#3d1c1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:15px;line-height:1.45;
+  padding-block:20px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1080px;margin:0 auto}
+h1{font-size:22px;margin:0;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:17px;margin:0 0 10px;font-weight:600}
+h3{font-size:14px;margin:0;font-weight:600}
+.sub{color:var(--muted);margin:2px 0 0;font-size:13.5px}
+header{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;align-items:flex-end;margin-bottom:14px}
+nav{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-bottom:18px}
+nav button{background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);font:inherit;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap}
+nav button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 13px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn.small{padding:4px 9px;font-size:13px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px}
+.tile .n{font-family:var(--mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.tile .l{color:var(--muted);font-size:13px}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:640px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:500;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer}
+tr.row:hover td{background:var(--accent-soft)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;font-weight:500;padding:2px 8px;border-radius:10px;background:var(--line);color:var(--fg);white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.acc{background:var(--accent-soft);color:var(--accent)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:4px 12px;font-size:13px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.muted{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
+label.f input,label.f select,label.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;color:var(--fg);font-size:15px;width:100%}
+textarea{min-height:76px;resize:vertical}
+textarea.big{min-height:130px;line-height:1.5}
+.sec{margin-top:22px}
+.sec>h3.st{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding-bottom:6px;border-bottom:2px solid var(--line)}
+.grp{margin-top:16px;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.grp>h3{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;background:var(--accent-soft);color:var(--fg)}
+.grp .ev{padding:8px 12px 12px}
+.ind{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:space-between;align-items:center;padding:9px 12px;border-top:1px solid var(--line)}
+.ind .t{flex:1 1 300px;min-width:0}
+.ind .look{display:block;font-size:12.5px;color:var(--muted);margin-top:1px}
+.seg{display:flex;gap:4px}
+.seg button{min-width:46px;padding:6px 8px;border:1px solid var(--line);background:var(--bg);border-radius:6px;cursor:pointer;font-family:var(--mono)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.legend{font-size:12.5px;color:var(--muted);margin:8px 0 0}
+.scalebox{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.scalebox b{color:var(--fg);font-family:var(--mono)}
+.savebar{position:sticky;bottom:0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-top:16px;padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+.savebar .msg{font-size:13.5px}
+.savebar .msg.err{color:var(--bad);font-weight:500}
+.savebar .msg.ok{color:var(--good)}
+.task{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.task input[type=checkbox]{width:19px;height:19px;margin-top:2px;accent-color:var(--accent)}
+.task .meta{grid-column:2;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;color:var(--muted);align-items:center}
+.task .note{grid-column:2;display:flex;gap:6px}
+.task .note input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:13.5px;min-width:0}
+.task.done .tt{color:var(--muted);text-decoration:line-through}
+.empty{color:var(--muted);padding:18px;text-align:center}
+.banner{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:max(18px,env(safe-area-inset-bottom,0px));z-index:50;max-width:min(92vw,520px);background:var(--fg);color:var(--bg);border-radius:8px;padding:10px 16px;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.25)}
+.tch{margin-bottom:12px}
+.tch .obs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tch .obs button{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:13px}
+.mrow{display:grid;grid-template-columns:minmax(90px,130px) 1fr;gap:6px 14px;padding:10px 0;border-bottom:1px solid var(--line)}
+.mrow .steps{display:flex;flex-wrap:wrap;gap:6px 16px}
+.mrow label{display:flex;gap:6px;align-items:center;font-size:14px}
+.mrow input[type=checkbox]{accent-color:var(--accent);width:17px;height:17px}
+.linkbox{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.linkbox input{flex:1 1 260px;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:12.5px}
+.selfcmp{margin-top:10px}
+.selfcmp td,.selfcmp th{padding:6px 10px}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .3s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="title">Regjistri i nëndrejtorit</h1>
+      <p class="sub">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027 · Matematikë, Fizikë, TIK</p>
+    </div>
+    <div id="hdrbtns" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn small" id="dossierBtn" hidden>Shkarko dosjen e plotë (për printim)</button>
+      <button class="btn small" id="exportBtn" hidden>Eksporto CSV</button>
+      <button class="btn small" id="dataBtn" hidden>Të dhënat: importo / kopje rezervë</button>
+    </div>
+  </header>
+  <div id="banner"></div>
+  <nav role="tablist" id="tabs">
+    <button role="tab" data-tab="pasqyra">Pasqyra</button>
+    <button role="tab" data-tab="monitorimi">Monitorimi</button>
+    <button role="tab" data-tab="veprimtarite">Veprimtaritë</button>
+    <button role="tab" data-tab="matura">Matura</button>
+    <button role="tab" data-tab="mesuesit">Mësuesit</button>
+  </nav>
+  <main id="view"></main>
+</div>
+<div id="toast" hidden></div>
+
+<script>
+/* Vendos këtu konfigurimin e Firebase (firebaseConfig). Nëse mbetet bosh, regjistri ruan vetëm në shfletues. */
+window.FIREBASE_CONFIG={apiKey:"AIzaSyAQ35tragO2uKQPYyFc9lW81EN0edUayoE",authDomain:"regjistri-i-monitorimit.firebaseapp.com",projectId:"regjistri-i-monitorimit",storageBucket:"regjistri-i-monitorimit.firebasestorage.app",messagingSenderId:"762979308128",appId:"1:762979308128:web:2c13904310b52377dca905"};
+</script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+/* Shtresa e pavarur: jashtë Claude, të dhënat ruhen në shfletues (localStorage) */
+(function(){
+  if(window.claude&&typeof window.claude.use==="function")return;
+  window.__STANDALONE=true;
+  window.__TEACHER=/^#mesues-/.test(location.hash);
+  const P="regjistri2026:",subs={};
+  const rd=k=>{try{const x=localStorage.getItem(P+k);return x?JSON.parse(x):null;}catch(e){return null;}};
+  const wr=(k,v)=>{try{localStorage.setItem(P+k,JSON.stringify(v));}catch(e){throw {code:"storage",message:"Shfletuesi nuk lejon ruajtjen (hapje private ose hapësira e mbushur)."};}};
+  const all=c=>rd("c:"+c)||{};
+  const snapOf=c=>{const m=all(c);return {docs:Object.keys(m).map(id=>({id,data:()=>m[id]}))};};
+  const notify=c=>(subs[c]||[]).forEach(f=>{try{f(snapOf(c));}catch(e){console.error(e);}});
+  const clone=d=>JSON.parse(JSON.stringify(d));
+  const merge=(a,b)=>{const o=Object.assign({},a);for(const k in b){if(k==="__proto__")continue;const v=b[k];o[k]=(v&&typeof v==="object"&&!Array.isArray(v)&&o[k]&&typeof o[k]==="object")?merge(o[k],v):v;}return o;};
+  const db={collection:c=>({
+    doc:id=>({
+      get:async()=>{const m=all(c);return {exists:id in m,data:()=>m[id]};},
+      set:async(d,o)=>{const m=all(c);m[id]=(o&&o.merge)?merge(m[id]||{},clone(d)):clone(d);wr("c:"+c,m);notify(c);},
+      update:async d=>{const m=all(c);m[id]=merge(m[id]||{},clone(d));wr("c:"+c,m);notify(c);}
+    }),
+    onSnapshot:cb=>{(subs[c]=subs[c]||[]).push(cb);setTimeout(()=>cb(snapOf(c)),0);return()=>{subs[c]=subs[c].filter(f=>f!==cb);};}
+  })};
+  const user={id:async()=>"local",canEdit:async()=>!window.__TEACHER};
+  const downloads={save:async({filename,data})=>{
+    const type=/\.csv$/i.test(filename)?"text/csv;charset=utf-8":/\.json$/i.test(filename)?"application/json":"text/html;charset=utf-8";
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type}));a.download=filename;
+    document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}};
+  const caps={db,user,downloads};
+  window.claude={use:async n=>caps[n]};
+  window.__BK={P};
+
+  /* ---- Firebase (kur është vendosur konfigurimi dhe faqja hapet online) ---- */
+  const CFG=window.FIREBASE_CONFIG||{};
+  if(CFG.projectId&&location.protocol!=="file:"){
+    window.__STANDALONE=false;
+    if(typeof firebase==="undefined"){
+      window.__FBERR="nuk u ngarkua Firebase (kontrollo lidhjen me internetin).";
+      window.claude={use:async n=>n==="downloads"?downloads:null};
+    }else{
+      if(!firebase.apps.length)firebase.initializeApp(CFG);
+      const auth=firebase.auth(),fs=firebase.firestore();
+      window.__FB_AUTH=auth;
+      const fdb={collection:c=>({
+        doc:id=>{const r=fs.collection(c).doc(id);return {get:()=>r.get(),set:(d,o)=>r.set(clone(d),o),update:d=>r.update(clone(d))};},
+        onSnapshot:(cb,err)=>fs.collection(c).onSnapshot(cb,err)
+      })};
+      const firstUser=()=>new Promise(res=>{const off=auth.onAuthStateChanged(x=>{off();res(x);});});
+      const $i=id=>document.getElementById(id);
+      const loginUI=()=>new Promise(res=>{
+        $i("view").innerHTML='<div class="panel" style="max-width:380px;margin:30px auto"><h2>Hyrje në regjistër</h2><label class="f">Email<input id="lgE" type="email" autocomplete="username"></label><label class="f" style="margin-top:10px">Fjalëkalimi<input id="lgP" type="password" autocomplete="current-password"></label><p class="msg" id="lgM" style="margin:8px 0"></p><button class="btn primary" id="lgGo">Hyr</button></div>';
+        const go=async()=>{const m=$i("lgM");m.className="msg";m.textContent="Duke hyrë…";
+          try{const r=await auth.signInWithEmailAndPassword($i("lgE").value.trim(),$i("lgP").value);res(r.user);}
+          catch(e){m.className="msg err";m.textContent="Nuk u hap: "+(/invalid-credential|wrong-password|user-not-found|invalid-email/.test(e.code||"")?"email ose fjalëkalim i gabuar.":(e.code||e.message));}};
+        $i("lgGo").onclick=go;$i("lgP").onkeydown=e=>{if(e.key==="Enter")go();};
+      });
+      let ready=null;
+      const waitAuth=()=>ready||(ready=(async()=>{
+        let u=await firstUser();
+        if(window.__TEACHER){if(!u)u=(await auth.signInAnonymously()).user;return u;}
+        while(!u||u.isAnonymous)u=await loginUI();
+        return u;
+      })().catch(e=>{window.__FBERR=(e&&(e.code||e.message))||String(e);throw e;}));
+      window.claude={use:async n=>{
+        if(n==="downloads")return downloads;
+        await waitAuth();
+        if(n==="db")return fdb;
+        if(n==="user")return {id:async()=>auth.currentUser.uid,canEdit:async()=>!window.__TEACHER&&!!auth.currentUser&&!auth.currentUser.isAnonymous};
+        return null;
+      }};
+    }
+  }
+})();
+</script>
+<script>
+"use strict";
+const ARTIFACT_URL=location.href.split("#")[0];
+const DAYS=["Hën","Mar","Mër","Enj","Pre","Sht","Die"];
+const PLAN_OBS=[
+["m1-01","2026-09-21","Rifan Zhuzhi","Fizikë","12-C","5 (12:15)","Dita",1],
+["m1-02","2026-09-23","Sadin Tola","Fizikë","12-A(KP)","1 (13:55)","KP",1],
+["m1-03","2026-09-25","Eriola Çela","TIK","11-A","5 (12:15)","Dita",1],
+["m1-04","2026-09-28","Xhoana Cerjani","TIK","10-C","5 (12:15)","Dita",1],
+["m1-05","2026-10-01","Rovena Kiçi","Fizikë","11-E","4 (11:25)","Dita",1],
+["m1-06","2026-10-02","Sadin Tola","Matematikë","12-C","4 (11:25)","Dita",1],
+["m1-07","2026-10-05","Dorina Selmani","TIK","11-F","5 (12:15)","Dita",1],
+["m1-08","2026-10-07","Roalda Domazeti","Matematikë","12-B","2 (9:20)","Dita",1],
+["m1-09","2026-10-09","Denis Lamullari","Matematikë","10-B","3 (10:10)","Dita",1],
+["m1-10","2026-10-13","Eriola Çela","Matematikë","10-E","5 (12:15)","Dita",1],
+["m1-11","2026-10-14","Blerim Lazimi","Fizikë","10-F","2 (9:20)","Dita",1],
+["m1-12","2026-10-15","Ali Nesimi","Matematikë","12-G","5 (12:15)","Dita",1],
+["m1-13","2026-10-21","Bexhet Hysa","TIK","13-A(KP)","2 (14:45)","KP",1],
+["m1-14","2026-10-23","Roalda Domazeti","Fizikë","10-G","5 (12:15)","Dita",1],
+["m1-15","2026-10-28","Anila Daci","Matematikë","11-B","5 (12:15)","Dita",1],
+["m1-16","2026-10-30","Rabaxhan Pilafi","Matematikë","11-F","2 (9:20)","Dita",1],
+["m2-01","2027-01-20","Xhoana Cerjani","TIK","12-E","2 (9:20)","Dita",2],
+["m2-02","2027-01-21","Blerim Lazimi","Fizikë","10-D","2 (9:20)","Dita",2],
+["m2-03","2027-01-22","Dorina Selmani","TIK","10-D","5 (12:15)","Dita",2],
+["m2-04","2027-01-25","Eriola Çela","Matematikë","10-H","4 (11:25)","Dita",2],
+["m2-05","2027-01-26","Rovena Kiçi","Fizikë","11-C","4 (11:25)","Dita",2],
+["m2-06","2027-01-29","Rifan Zhuzhi","Fizikë","12-G","3 (10:10)","Dita",2],
+["m2-07","2027-02-02","Anila Daci","Matematikë","11-E","3 (10:10)","Dita",2],
+["m2-08","2027-02-03","Roalda Domazeti","Fizikë","10-H","4 (11:25)","Dita",2],
+["m2-09","2027-02-05","Sadin Tola","Matematikë","12-D","2 (9:20)","Dita",2],
+["m2-10","2027-02-08","Denis Lamullari","Matematikë","12-A","3 (10:10)","Dita",2],
+["m2-11","2027-02-10","Rifan Zhuzhi","Matematikë","13-B(KP)","1 (13:55)","KP",2],
+["m2-12","2027-02-12","Roalda Domazeti","TIK","11-C(KP)","1 (13:55)","KP",2],
+["m2-13","2027-02-16","Rabaxhan Pilafi","Matematikë","11-G","2 (9:20)","Dita",2],
+["m2-14","2027-02-18","Roalda Domazeti","Matematikë","10-D","5 (12:15)","Dita",2],
+["m2-15","2027-02-25","Eriola Çela","TIK","11-D","2 (9:20)","Dita",2],
+["m2-16","2027-02-26","Ali Nesimi","Matematikë","12-E","2 (9:20)","Dita",2]
+];
+const TEACHERS={"Ali Nesimi":["Matematikë"],"Anila Daci":["Matematikë"],"Denis Lamullari":["Matematikë"],"Rabaxhan Pilafi":["Matematikë"],
+"Sadin Tola":["Matematikë","Fizikë"],"Eriola Çela":["Matematikë","TIK"],"Rifan Zhuzhi":["Matematikë","Fizikë"],"Roalda Domazeti":["Matematikë","Fizikë","TIK"],
+"Blerim Lazimi":["Fizikë"],"Rovena Kiçi":["Fizikë"],"Dorina Selmani":["TIK"],"Xhoana Cerjani":["TIK"],"Bexhet Hysa":["TIK"]};
+const PERIODS=[["I","2026-09-14","2026-12-23"],["II","2027-01-11","2027-04-02"],["III","2027-04-05","2027-06-18"]];
+const SCALE=[[4,"Shumë mirë","Treguesi është plotësisht i pranishëm dhe i qëndrueshëm gjatë gjithë orës."],[3,"Mirë","Pjesa më e madhe e treguesit është e pranishme; ka të meta të vogla."],[2,"Mjaftueshëm","Treguesi është pjesërisht i pranishëm; të metat janë të dukshme."],[1,"Dobët","Treguesi mungon ose është shumë i dobët."]];
+
+/* Instrumenti: grupet 2.1–2.7 të Fushës 2 (ASCAP). 'l' = çfarë vëzhgohet. */
+const INSTR=[
+{id:"2.1",t:"Planifikimi vjetor dhe mujor",i:[
+ ["Plani vjetor dhe mujor ekziston dhe është i miratuar","Kërko planin; kontrollo nënshkrimin dhe përputhjen me programin."],
+ ["Tema e orës ndjek planin dhe është regjistruar në SMIP","Krahaso temën e orës me planin mujor dhe me hyrjen në SMIP."],
+ ["Shpërndarja e orëve është realizuar sipas planit","Krahaso temat e realizuara me ato të planifikuara deri në datën e vëzhgimit."]]},
+{id:"2.2",t:"Projektet dhe veprimtaritë e integruara",i:[
+ ["Planifikohen projekte, detyra praktike ose eksperimente","Shiko nëse ka projekte të planifikuara për periudhën."],
+ ["Lidhja me jetën reale dhe me lëndët e tjera","Shembuj nga përditshmëria, lidhje ndërlëndore (Matematikë, Fizikë, TIK)."]]},
+{id:"2.3",t:"Plani ditor i orës",i:[
+ ["Plani ditor ekziston dhe ka qëllime të matshme","Qëllimet janë formuluar si rezultate të pritura me tregues vlerësimi."],
+ ["Struktura e orës: hyrje, zhvillim, përmbyllje","Çdo fazë dallohet dhe ka kohë të arsyeshme."],
+ ["Përputhja e planit me realizimin","Veprimtaritë e planifikuara u zhvilluan; ndryshimet janë të justifikuara."]]},
+{id:"2.4",t:"Mjedisi i të nxënit",i:[
+ ["Klima e klasës: respekt dhe disiplinë","Marrëdhënia mësues–nxënës, rregulla të qarta, përfshirja e të gjithëve."],
+ ["Nisja në kohë dhe menaxhimi i sjelljes","Ora nis dhe mbyllet në kohë; ndërhyrjet ndaj sjelljes janë të qeta dhe efektive."],
+ ["Organizimi i hapësirës dhe i materialeve","Vendosja e nxënësve, tabela, materialet në dispozicion."],
+ ["Përdorimi i laboratorit ose i pajisjeve (Fizikë, TIK)","Siguria, pajisje funksionale, përdorim i qëllimshëm. Lëre bosh (–) nëse nuk zbatohet."]]},
+{id:"2.5",t:"Metodologjia",i:[
+ ["Njoftimi i qëllimeve dhe i rezultateve të pritura","Nxënësit dinë në fillim çfarë do të nxënë."],
+ ["Saktësia dhe qartësia e përmbajtjes shkencore","Terminologjia, shembujt dhe zgjidhjet pa gabime."],
+ ["Aktivizimi i të gjithë nxënësve","Pjesëmarrje e gjerë, jo vetëm e disa nxënësve."],
+ ["Metoda dhe forma pune të larmishme","Të paktën 2–3 metoda ose forma (individuale, çifte, grupe)."],
+ ["Diferencimi sipas nevojave të nxënësve","Detyra me nivele të ndryshme; mbështetje për nxënësit e dobët, sfida për të fortit."],
+ ["Pyetje të nivelit të lartë dhe të menduarit kritik","Pyetje 'pse' dhe 'si', analizë, zgjidhje problemash."],
+ ["Përdorimi i TIK-ut dhe i mjeteve mësimore","Kompjuter, projektor, softuer (p.sh. GeoGebra, simulime), modele, mjete të improvizuara."],
+ ["Menaxhimi i kohës","Koha e ndarë për secilën fazë; asnjë fazë nuk shtypet."]]},
+{id:"2.6",t:"Detyrat e shtëpisë",i:[
+ ["Detyra është e planifikuar dhe e përshtatshme për nivelin","Vëllimi, vështirësia, lidhja me temën."],
+ ["Kontrolli dhe reagimi ndaj detyrës së mëparshme","Detyra kontrollohet, komentohet dhe shërben si pikënisje."]]},
+{id:"2.7",t:"Vlerësimi",i:[
+ ["Kriteret e vlerësimit janë të njohura për nxënësit","Nxënësit e dinë çfarë pritet dhe si vlerësohen."],
+ ["Vlerësim formues gjatë orës","Pyetje kontrolli, ushtrime të shkurtra, vëzhgim i punës."],
+ ["Reagim (feedback) për nxënësit","Komente specifike, jo vetëm nota."],
+ ["Përmbyllja dhe konkluzionet e orës","Përmbledhje e idesë kryesore; lidhja me qëllimin."],
+ ["Notat dhe mungesat në SMIP brenda afatit (neni 13)","Kontrollo SMIP: tema, nota e mungesa brenda ditës; testet brenda 1 jave."]]}
+];
+const gkey=(g,k)=>g.id.replace(".","_")+"_"+k;
+const MODEL={
+"2.1":{s:"planifikimi vjetor dhe mujor është i plotë dhe i harmonizuar me programin",i:"harmonizimi i planit mujor me realizimin e temave dhe regjistrimi i tyre në SMIP",r:"Të përditësohet plani mujor dhe temat të regjistrohen në SMIP brenda ditës (neni 13)."},
+"2.2":{s:"janë planifikuar projekte dhe detyra praktike të lidhura me jetën reale",i:"planifikimi i projekteve dhe i lidhjeve ndërlëndore",r:"Të planifikohet të paktën një projekt ose eksperiment për periudhën pasardhëse."},
+"2.3":{s:"plani ditor është i qartë, me qëllime të matshme dhe strukturë të përshtatshme",i:"formulimi i qëllimeve të matshme dhe struktura e orës",r:"Plani ditor të ketë qëllime të matshme dhe kohën për çdo fazë të orës."},
+"2.4":{s:"klima e klasës është pozitive dhe hapësira e materialet janë të organizuara mirë",i:"menaxhimi i klasës dhe organizimi i hapësirës e i materialeve",r:"Të rishikohet organizimi i hapësirës dhe të vendosen rregulla të qarta pune me nxënësit."},
+"2.5":{s:"metodologjia është e larmishme dhe nxënësit janë aktivë gjatë orës",i:"diferencimi, pyetjet e nivelit të lartë dhe përdorimi i TIK-ut",r:"Të përfshihen detyra të diferencuara dhe pyetje të nivelit të lartë; të përdoret TIK ose mjete mësimore të paktën një herë në javë."},
+"2.6":{s:"detyrat e shtëpisë janë të planifikuara dhe kontrollohen rregullisht",i:"përshtatja dhe kontrolli i detyrave të shtëpisë",r:"Detyrat të jenë të diferencuara dhe të kontrollohen e të komentohen në orën pasardhëse."},
+"2.7":{s:"vlerësimi është i qartë, formues dhe me reagim për nxënësit",i:"vlerësimi formues, reagimi ndaj nxënësve dhe pasqyrimi i notave në SMIP në afat",r:"Të përdoren kritere të qarta vlerësimi dhe notat e mungesat të regjistrohen në SMIP sipas afateve të nenit 13."}
+};
+const SELF_ITEMS=[["s1","Qëllimet e orës u arritën nga shumica e nxënësve"],["s2","Ora u realizua sipas planit ditor"],["s3","Nxënësit u aktivizuan dhe morën pjesë"],["s4","Metodat dhe format e punës ishin të përshtatshme"],["s5","U mbështetën nxënës me nevoja të ndryshme (diferencimi)"],["s6","Vlerësimi formues dhe reagimi ndaj nxënësve"],["s7","Menaxhimi i kohës"],["s8","Përdorimi i TIK-ut dhe i mjeteve mësimore"],["s9","Klima e klasës dhe disiplina"]];
+const SELF_TEXTS=[["good","Çfarë shkoi mirë në këtë orë?","p.sh. u arrit qëllimi, nxënësit u angazhuan me detyrën X"],["change","Çfarë do të ndryshoja po ta jepja përsëri?","p.sh. do t'u jepja më shumë kohë ushtrimeve"],["support","Çfarë mbështetje më duhet (material, trajnim, pajisje)?",""],["action","Një veprim konkret që do ta zbatoj në orën tjetër",""]];
+
+function levelOf(pct){return pct==null?null:pct>=90?"Shumë mirë":pct>=75?"Mirë":pct>=51?"Mjaftueshëm":"Dobët";}
+function levelCls(l){return l==="Shumë mirë"||l==="Mirë"?"good":l==="Mjaftueshëm"?"warn":l?"bad":"";}
+
+const TASKS=[];
+const T=(id,g,t,k,s,e,p)=>TASKS.push({id,g,t,k,s,e,p:p||""});
+const G1="Drejtimi dhe menaxhimi",G2="Cilësia e mësimdhënies",G3="Vlerësimi dhe arritjet",G4="Mirëqenia e nxënësve",GS="SMIP",GR="Raportet";
+T("a01",G1,"Plani vjetor i monitorimit: miratimi në drejtori dhe njoftimi i mësuesve","01–11.09.2026","2026-09-01","2026-09-11","Plani, procesverbal");
+T("a02",G1,"Kontrolli i të dhënave në SMIP: klasat, mësuesit e caktuar, orari, nxënësit","01–18.09.2026","2026-09-01","2026-09-18","Raport kontrolli");
+T("a03",G1,"Takim i ekipit lëndor (Matematikë, Fizikë, TIK), shtator","shtator 2026","2026-09-14","2026-09-30","Procesverbal");
+T("a04",G1,"Takim i ekipit lëndor, dhjetor","dhjetor 2026","2026-12-01","2026-12-23","Procesverbal");
+T("a05",G1,"Takim i ekipit lëndor, mars","mars 2027","2027-03-01","2027-03-31","Procesverbal");
+T("a06",G1,"Vetëvlerësimi sipas 24 kritereve të ASCAP","maj–qershor 2027","2027-05-03","2027-06-18","Raporti i vetëvlerësimit");
+T("b01",G2,"Kontroll i planifikimit vjetor dhe mujor, shtator","14–25.09.2026","2026-09-14","2026-09-25","Fleta e kontrollit");
+T("b02",G2,"Kontroll i planifikimit vjetor dhe mujor, shkurt","01–12.02.2027","2027-02-01","2027-02-12","Fleta e kontrollit");
+T("b03",G2,"Vëzhgim i orës së kujdestarit ose i takimeve me prindër (sipas nevojës)","nëntor 2026 – mars 2027","2026-11-02","2027-03-31","Formular vëzhgimi");
+T("b04",G2,"Trajnim i brendshëm: metodologji dhe TIK në mësim, nëntor","nëntor 2026","2026-11-02","2026-11-30","Programi, pjesëmarrja");
+T("b05",G2,"Trajnim i brendshëm, mars","mars 2027","2027-03-01","2027-03-31","Programi, pjesëmarrja");
+T("c01",G3,"Test diagnostikues për klasat 10–12 dhe analiza e rezultateve","14–25.09.2026","2026-09-14","2026-09-25","Raport analize");
+T("c02",G3,"Analiza e rezultateve të Periudhës I","dhjetor 2026","2026-12-01","2026-12-23","Raport analize");
+T("c03",G3,"Analiza e rezultateve të Periudhës II","mars–prill 2027","2027-03-22","2027-04-09","Raport analize");
+T("c04",G3,"Analiza e rezultateve të Periudhës III","qershor 2027","2027-06-01","2027-06-18","Raport analize");
+T("c05",G3,"Mbështetje për nxënësit me vështirësi dhe për talentet (konsultime, olimpiada)","e vazhdueshme",null,null,"Lista, orari i konsultimeve");
+T("d01",G4,"Pyetësor për nxënësit dhe prindërit mbi mësimdhënien, nëntor","nëntor 2026","2026-11-02","2026-11-27","Pyetësorët, analiza");
+T("d02",G4,"Pyetësor për nxënësit dhe prindërit, maj","maj 2027","2027-05-03","2027-05-28","Pyetësorët, analiza");
+T("d03",G4,"Siguria dhe mjedisi i laboratorëve (Fizikë, TIK), shtator","shtator 2026","2026-09-14","2026-09-30","Fleta e inspektimit");
+T("d04",G4,"Siguria dhe mjedisi i laboratorëve, shkurt","shkurt 2027","2027-02-01","2027-02-26","Fleta e inspektimit");
+const MONTHS=[["tetor 2026","2026-10"],["nëntor 2026","2026-11"],["dhjetor 2026","2026-12"],["janar 2027","2027-01"],["shkurt 2027","2027-02"],["mars 2027","2027-03"],["prill 2027","2027-04"],["maj 2027","2027-05"],["qershor 2027","2027-06"]];
+function eom(ym){const[y,m]=ym.split("-").map(Number);return ym+"-"+String(new Date(Date.UTC(y,m,0)).getUTCDate()).padStart(2,"0");}
+MONTHS.forEach(([n,ym],k)=>{
+  T("e"+String(k+1).padStart(2,"0"),GS,"Kontrolli mujor i afateve në SMIP (neni 13: tema, nota dhe mungesa brenda ditës; testet brenda 1 jave; nota e periudhës brenda 2 javësh), "+n,n,ym+"-01",eom(ym),"Raport nga SMIP");
+  T("f"+String(k+1).padStart(2,"0"),G4,"Raporti mujor i mungesave nga SMIP, "+n,n,ym+"-01",eom(ym),"Raport mujor");
+});
+T("g01",GS,"Miratimi në SMIP i kërkesave për ndryshim note ose mungese jashtë afatit (drejtori, brenda 2 ditëve)","e vazhdueshme",null,null,"SMIP");
+T("g02",GS,"Ndjekja e arsyetimit të mungesave nga kujdestarët (neni 14: jo më vonë se dita e parë e javës)","e vazhdueshme",null,null,"SMIP");
+T("g03",GS,"Si administrator SMIP (kur nuk ka sekretar): hapja e klasave dhe caktimi i kujdestarëve brenda 1 jave nga hapja e sistemit","sipas hapjes së sistemit",null,null,"SMIP");
+T("g04",GS,"Si administrator SMIP: mbyllja e regjistrave në fund të vitit","qershor 2027","2027-06-18","2027-06-30","SMIP");
+T("g05",GS,"Si administrator SMIP: plotësimi i amzës digjitale brenda 1 muaji nga mbarimi i mësimit","18.06 – 18.07.2027","2027-06-18","2027-07-18","SMIP");
+T("m01",GR,"Raporti i monitorimit të parë","02–20.11.2026","2026-11-02","2026-11-20","Raporti");
+T("m02",GR,"Raporti i Periudhës I dhe rishikimi i planit","11–15.01.2027","2027-01-11","2027-01-15","Raporti");
+T("m03",GR,"Raporti i monitorimit të dytë","01–12.03.2027","2027-03-01","2027-03-12","Raporti");
+T("m04",GR,"Monitorim rishikues për mësuesit me rekomandime","05.04 – 14.05.2027","2027-04-05","2027-05-14","Formularët e vëzhgimit");
+T("m05",GR,"Raporti përfundimtar i monitorimit","17.05 – 04.06.2027","2027-05-17","2027-06-04","Raporti");
+T("m06",GR,"Raporti vjetor dhe vlerësimi i mësuesve","07–18.06.2027","2027-06-07","2027-06-18","Raporti vjetor");
+T("m07",GR,"Plani i vitit 2027–2028","07–18.06.2027","2027-06-07","2027-06-18","Plani");
+const GM="Matura Shtetërore";
+[["r01","Kontrolli i të dhënave të maturantëve në SMIP (emër, klasë, drejtim, mesatare e viteve të mëparshme) dhe korrigjimi i gabimeve","shtator 2026","2026-09-01","2026-09-30"],
+["r02","Takim informues me klasat e 12-ta dhe kujdestarët: struktura e provimeve, afatet, rregullat","tetor 2026","2026-10-01","2026-10-30"],
+["r03","Aplikimi dhe zgjedhja e lëndëve me zgjedhje; verifikimi i të dhënave nga nxënësit; plotësimi në SMIP brenda afateve të QSHA-së","dhjetor 2026 – shkurt 2027","2026-12-01","2027-02-28"],
+["r04","Pretesti i Maturës (një herë): 1 test për secilën nga 4 lëndët e provimeve","15–19.03.2027","2027-03-15","2027-03-19"],
+["r05","Analiza e pretestit dhe plani i ndërhyrjeve për secilën lëndë","22.03 – 02.04.2027","2027-03-22","2027-04-02"],
+["r06","Lista e mbikëqyrësve (2 orë/javë sipas Udhëzimit 14/2023) dhe trajnimi i tyre","prill–maj 2027","2027-04-01","2027-05-31"],
+["r07","Organizimi i sallave dhe logjistika","maj 2027","2027-05-03","2027-05-31"],
+["r08","Mbyllja e klasave të 12-ta; kontrolli përfundimtar i listave dhe i sallave; mesatarja e shkollës së mesme e verifikuar në SMIP","31.05 – 04.06.2027","2027-05-31","2027-06-04"],
+["r09","Zbatimi i provimeve, raportimi ditor sipas procedurës, trajtimi i ankesave","07–28.06.2027","2027-06-07","2027-06-28"],
+["r10","Gjenerimi i dëftesave dhe certifikatave nga SMIP (neni 17)","pas rezultateve",null,null]].forEach(r=>T(r[0],GM,r[1],r[2],r[3],r[4],""));
+const MCLASSES=["12-A","12-B","12-C","12-D","12-E","12-F","12-G","13-A(KP)","13-B(KP)","13-C(KP)"];
+const MSTEPS=[["data","Të dhënat në SMIP të verifikuara"],["info","Takimi informues"],["elective","Lëndët me zgjedhje të verifikuara"],["pretest","Pretesti u zhvillua (4 lëndë)"],["analysis","Analiza e pretestit"]];
+const mkey=c=>c.replace(/[()]/g,"");
+
+/* ---------- Gjendja ---------- */
+let db=null,user=null,dlcap=null,uid=null;
+const state={tab:"pasqyra",vv:null,isAdmin:null,obsDocs:{},taskDocs:{},matDocs:{},selfDocs:{},selfForms:{},openId:null,openObj:null,draft:null,selfDraft:null,
+  filter:{per:"all",shift:"all",status:"all",subj:"all",teacher:"all"},tfilter:"all",loaded:{obs:false,tasks:false,mat:false}};
+const $=s=>document.querySelector(s), view=$("#view");
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+function fmt(s){if(!s)return"–";const [y,m,d]=s.split("-").map(Number);const dow=(new Date(Date.UTC(y,m-1,d)).getUTCDay()+6)%7;return DAYS[dow]+" "+String(d).padStart(2,"0")+"."+String(m).padStart(2,"0")+"."+y;}
+function fmtShort(s){if(!s)return"";const [y,m,d]=s.split("-");return d+"."+m+"."+y;}
+function addDays(s,n){const [y,m,d]=s.split("-").map(Number);const t=new Date(Date.UTC(y,m-1,d+n));return t.getUTCFullYear()+"-"+String(t.getUTCMonth()+1).padStart(2,"0")+"-"+String(t.getUTCDate()).padStart(2,"0");}
+const pill=(txt,cls)=>`<span class="pill ${cls||""}">${esc(txt)}</span>`;
+let toastT=null;
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);}
+
+function allObs(){
+  const list=PLAN_OBS.map(r=>{const d=state.obsDocs[r[0]]||{};return {id:r[0],date:d.date||r[1],planDate:r[1],teacher:r[2],subject:r[3],klasa:d.klasa||r[4],ora:d.ora||r[5],shift:r[6],cycle:r[7],doc:d,extra:false};});
+  for(const[id,d]of Object.entries(state.obsDocs)){if(id.startsWith("x-"))list.push({id,date:d.date||"",planDate:d.date||"",teacher:d.teacher||"",subject:d.subject||"",klasa:d.klasa||"",ora:d.ora||"",shift:d.shift||"Dita",cycle:3,doc:d,extra:true});}
+  return list.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function scoreOf(doc){
+  const sc=doc.scores||{};let sum=0,n=0;const groups={};
+  for(const g of INSTR){let gs=0,gn=0;g.i.forEach((_,k)=>{const v=sc[gkey(g,k)]||sc[g.id+"."+k];if(v){gs+=v;gn++;}});if(gn)groups[g.id]=Math.round(gs/(4*gn)*100);sum+=gs;n+=gn;}
+  return {pct:n?Math.round(sum/(4*n)*100):null,n,groups};
+}
+function selfScore(f){if(!f)return null;let s=0,n=0;SELF_ITEMS.forEach(([k])=>{if(f[k]){s+=f[k];n++;}});return n?Math.round(s/(4*n)*100):null;}
+function statusOf(o){const s=o.doc.status;if(s==="kryer")return"kryer";if(s==="shtyrë")return"shtyrë";if(s==="pa-kryer")return"pa-kryer";return o.date<today()?"vonuar":"planifikuar";}
+const STAT={"kryer":["Kryer","good"],"planifikuar":["Planifikuar","acc"],"vonuar":["Vonuar","bad"],"shtyrë":["Shtyrë","warn"],"pa-kryer":["Nuk u krye","bad"]};
+function taskDone(id){return !!(state.taskDocs[id]&&state.taskDocs[id].done);}
+function taskStatus(t){if(taskDone(t.id))return["Kryer","good"];const td=today();if(t.e&&t.e<td)return["Vonuar","bad"];if(t.s&&t.s<=td&&(!t.e||t.e>=td))return["Në afat","acc"];return t.s?["Më vonë",""]:["I vazhdueshëm",""];}
+
+/* ---------- Ruajtja ---------- */
+function withTimeout(p,ms){return Promise.race([p,new Promise((_,rej)=>setTimeout(()=>rej({code:"timeout",message:"Serveri nuk u përgjigj brenda "+ms/1000+" sekondave."}),ms))]);}
+function errText(e){return (e&&(e.code||e.name)?"("+(e.code||e.name)+") ":"")+(e&&e.message?e.message:String(e||""));}
+async function setDoc(coll,id,data){
+  if(!db){toast("Ruajtja nuk është e lidhur: faqja nuk e ka bazën e të dhënave. Hape nga llogaria jote.");return {ok:false,err:"db-null"};}
+  try{await withTimeout(db.collection(coll).doc(id).set(data),12000);return {ok:true};}
+  catch(e){console.error("set "+coll+"/"+id,e);return {ok:false,err:errText(e)};}
+}
+async function saveSelf(id,data){
+  if(!db)throw {code:"db-null",message:"Ruajtja nuk është e disponueshme."};
+  if(!uid&&user)uid=await user.id();
+  if(!uid)throw {code:"no-user",message:"Duhet të hysh me llogarinë tënde për të dërguar vetëvlerësimin."};
+  const ref=db.collection("selfeval").doc(uid);
+  const payload={forms:{[id]:data}};
+  await withTimeout(ref.set(payload,{merge:true}),12000);
+}
+
+/* ---------- Tekste model ---------- */
+function defaultTexts(d,pcts){
+  const g=INSTR.filter(x=>pcts&&pcts[x.id]!=null);
+  if(g.length){
+    const strong=g.filter(x=>pcts[x.id]>=75).sort((a,b)=>pcts[b.id]-pcts[a.id]).slice(0,3);
+    const weak=g.filter(x=>pcts[x.id]<75).sort((a,b)=>pcts[a.id]-pcts[b.id]).slice(0,3);
+    const strengths=strong.length?strong.map(x=>"• "+x.id+" "+x.t+" ("+pcts[x.id]+"%): "+MODEL[x.id].s+".").join("\n"):"• Ora u zhvillua në një klimë pune të qetë dhe nxënësit u përfshinë në veprimtari.";
+    const improve=weak.length?weak.map(x=>"• "+x.id+" "+x.t+" ("+pcts[x.id]+"%): "+MODEL[x.id].i+".").join("\n"):"• Nuk ka fusha me nivel të ulët; vazhdoni me diferencimin dhe pyetjet e nivelit të lartë.";
+    const due=fmtShort(addDays(d.date||today(),14));
+    const recs=(weak.length?weak.map((x,i)=>(i+1)+". "+MODEL[x.id].r+" (afati: "+due+")").join("\n")+"\n"+(weak.length+1)+". ":"1. ")+"Diskutim i ndjekjes së rekomandimeve me nëndrejtorin brenda 2 javësh.";
+    return {strengths,improve,recs};
+  }
+  const due=fmtShort(addDays(d.date||today(),14));
+  return {
+   strengths:"• Ora nisi në kohë dhe u zhvillua në një klimë pozitive pune.\n• Qëllimi i orës u njoftua dhe nxënësit u përfshinë në veprimtari.\n• Përmbajtja shkencore u trajtua saktë dhe me shembuj të përshtatshëm.\n• [Shto ose ndrysho pikat sipas orës së vëzhguar.]",
+   improve:"• Diferencimi i detyrave sipas nivelit të nxënësve.\n• Përdorimi më i shpeshtë i pyetjeve të nivelit të lartë.\n• Përdorimi i TIK-ut ose i mjeteve mësimore.\n• [Shto ose ndrysho pikat sipas orës së vëzhguar.]",
+   recs:"1. Të përfshihen në planin ditor detyra të diferencuara për nivele të ndryshme (afati: "+due+").\n2. Të përdoren pyetje të nivelit të lartë dhe të paktën një mjet mësimor ose TIK në çdo orë të re (afati: "+due+").\n3. Diskutim i ndjekjes së rekomandimeve me nëndrejtorin brenda 2 javësh."
+  };
+}
+
+/* ---------- Pamjet ---------- */
+function render(){
+  const tabs=$("#tabs"),hb=$("#hdrbtns");
+  if(state.isAdmin===null){view.innerHTML=`<div class="empty">Duke u ngarkuar…</div>`;return;}
+  if(!state.isAdmin){tabs.hidden=true;hb.hidden=true;$("#title").textContent=state.vv?"Vetëvlerësimi i mësuesit pas orës":"Regjistri i nëndrejtorit";
+    view.innerHTML=state.vv?selfView(false):`<div class="panel"><p>Ky është regjistër privat i nëndrejtorit. Nëse ke marrë një lidhje vetëvlerësimi, hape përsëri atë lidhje.</p></div>`;
+    if(state.vv)bindSelf(false);return;}
+  tabs.hidden=false;hb.hidden=false;$("#title").textContent="Regjistri i nëndrejtorit";
+  document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===state.tab));
+  if(state.vv){view.innerHTML=selfView(true);bindSelf(true);return;}
+  if(state.tab==="monitorimi"&&state.openObj){view.innerHTML=formView();bindForm();return;}
+  view.innerHTML=({pasqyra,monitorimi,veprimtarite,matura,mesuesit})[state.tab]();
+  ({pasqyra:bindOverview,monitorimi:bindMon,veprimtarite:bindTasks,matura:bindMatura,mesuesit:bindTeachers})[state.tab]();
+}
+
+function pasqyra(){
+  const obs=allObs();const planned=obs.filter(o=>!o.extra);const done=planned.filter(o=>o.doc.status==="kryer").length;
+  const extra=obs.filter(o=>o.extra&&o.doc.status==="kryer").length;
+  const tdone=TASKS.filter(t=>taskDone(t.id)).length, tover=TASKS.filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).length;
+  const lateObs=planned.filter(o=>statusOf(o)==="vonuar").length;
+  const mdone=MCLASSES.reduce((a,c)=>a+MSTEPS.filter(s=>((state.matDocs[mkey(c)]||{}).steps||{})[s[0]]).length,0), mtot=MCLASSES.length*MSTEPS.length;
+  const scored=obs.filter(o=>o.doc.status==="kryer").map(o=>scoreOf(o.doc).pct).filter(p=>p!=null);
+  const avg=scored.length?Math.round(scored.reduce((a,b)=>a+b,0)/scored.length):null;
+  const selfN=Object.keys(state.selfForms).length;
+  const tile=(n,l,p)=>`<div class="tile"><div class="n">${n}</div><div class="l">${l}</div>${p!=null?`<div class="bar"><i style="width:${p}%"></i></div>`:""}</div>`;
+  const upcoming=planned.filter(o=>o.doc.status!=="kryer"&&o.doc.status!=="pa-kryer"&&o.date>=today()).slice(0,6);
+  const late=planned.filter(o=>statusOf(o)==="vonuar").slice(0,6);
+  const taskLate=TASKS.filter(t=>!taskDone(t.id)&&t.e&&t.e<today()).slice(0,6);
+  const taskNow=TASKS.filter(t=>!taskDone(t.id)&&t.s&&t.s<=today()&&t.e&&t.e>=today()).slice(0,6);
+  const orow=o=>`<tr class="row" data-open="${esc(o.id)}"><td class="mono">${fmt(o.date)}</td><td>${esc(o.teacher)}<div class="muted" style="font-size:13px">${esc(o.subject)} · ${esc(o.klasa)}</div></td><td class="mono">${esc(o.ora)}</td></tr>`;
+  const trow=t=>`<div class="task" style="grid-template-columns:1fr"><div>${esc(t.t)}</div><div class="muted" style="font-size:13px">${esc(t.k)} · ${esc(t.g)}</div></div>`;
+  const periodBars=[1,2].map(c=>{const n=planned.filter(o=>o.cycle===c).length;const d=planned.filter(o=>o.cycle===c&&o.doc.status==="kryer").length;return `<div style="margin-top:10px"><div style="display:flex;justify-content:space-between"><span>Monitorimi i ${c===1?"parë":"dytë"}</span><span class="mono">${d}/${n}</span></div><div class="bar"><i style="width:${n?d/n*100:0}%"></i></div></div>`;}).join("");
+  return `
+  <div class="tiles">
+    ${tile(done+"/32","Vëzhgime të kryera"+(extra?` (+${extra} shtesë)`:""),done/32*100)}
+    ${tile(avg==null?"–":avg+"%","Mesatarja e vëzhgimeve"+(avg==null?"":" · "+levelOf(avg)),avg)}
+    ${tile(selfN,"Vetëvlerësime nga mësuesit",null)}
+    ${tile(tdone+"/"+TASKS.length,"Veprimtari të planit të kryera",tdone/TASKS.length*100)}
+    ${tile(tover+lateObs,"Të vonuara (veprimtari + vëzhgime)",null)}
+    ${tile(mdone+"/"+mtot,"Hapa Matura të përfunduar",mdone/mtot*100)}
+  </div>
+  <div class="two">
+    <section class="panel"><h2>Vëzhgimet e radhës</h2>
+      ${upcoming.length?`<div class="tablewrap" style="border:0"><table style="min-width:0"><tbody>${upcoming.map(orow).join("")}</tbody></table></div>`:`<div class="empty">Nuk ka vëzhgime të planifikuara pas sotit.</div>`}
+      ${late.length?`<h3 style="margin:14px 0 4px;color:var(--bad)">Vonuar</h3><div class="tablewrap" style="border:0"><table style="min-width:0"><tbody>${late.map(orow).join("")}</tbody></table></div>`:""}
+    </section>
+    <section class="panel"><h2>Veprimtari për këtë kohë</h2>
+      ${taskNow.length?taskNow.map(trow).join(""):`<div class="empty">Asnjë veprimtari e hapur sot.</div>`}
+      ${taskLate.length?`<h3 style="margin:14px 0 4px;color:var(--bad)">Vonuar</h3>${taskLate.map(trow).join("")}`:""}
+    </section>
+    <section class="panel"><h2>Ecuria e monitorimit</h2>${periodBars}<p class="legend">Periudha III është për vëzhgime rishikuese, sipas rekomandimeve.</p></section>
+  </div>`;
+}
+function bindOverview(){view.querySelectorAll("[data-open]").forEach(r=>r.onclick=()=>openObs(r.dataset.open));}
+
+function monitorimi(){
+  const f=state.filter;let obs=allObs();
+  if(f.per!=="all")obs=obs.filter(o=>String(o.cycle)===f.per);
+  if(f.shift!=="all")obs=obs.filter(o=>o.shift===f.shift);
+  if(f.subj!=="all")obs=obs.filter(o=>o.subject===f.subj);
+  if(f.teacher!=="all")obs=obs.filter(o=>o.teacher===f.teacher);
+  if(f.status!=="all")obs=obs.filter(o=>statusOf(o)===f.status);
+  const chip=(k,v,l)=>`<button class="chip" data-f="${k}" data-v="${v}" aria-pressed="${f[k]===v}">${l}</button>`;
+  const rows=obs.map(o=>{const s=statusOf(o),sc=scoreOf(o.doc),lv=levelOf(sc.pct);const [st,cl]=STAT[s];const sf=state.selfForms[o.id];
+    return `<tr class="row" data-open="${esc(o.id)}"><td class="mono">${fmt(o.date)}${o.date!==o.planDate&&!o.extra?`<div class="muted" style="font-size:12px">planifikuar ${fmt(o.planDate)}</div>`:""}</td><td>${esc(o.teacher)}${o.extra?" "+pill("shtesë","acc"):""}</td><td>${esc(o.subject)}</td><td>${esc(o.klasa)}</td><td class="mono">${esc(o.ora)}</td><td>${esc(o.shift)}</td><td>${pill(st,cl)}</td><td>${sc.pct==null?"–":`<span class="mono">${sc.pct}%</span> ${pill(lv,levelCls(lv))}`}${o.doc.recs&&o.doc.recsDone===false?" "+pill("rekomandime","warn"):""}${sf?" "+pill("vetëvlerësim","acc"):""}</td></tr>`;}).join("");
+  const teachers=Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b));
+  return `<div class="filters">
+    ${chip("per","all","Të gjitha")}${chip("per","1","Monitorimi i parë")}${chip("per","2","Monitorimi i dytë")}${chip("per","3","Shtesë / rishikues")}
+    <span class="muted">|</span>${chip("shift","all","Dita + KP")}${chip("shift","Dita","Dita")}${chip("shift","KP","KP")}
+    <span class="muted">|</span>${chip("subj","all","Të gjitha lëndët")}${chip("subj","Matematikë","Matematikë")}${chip("subj","Fizikë","Fizikë")}${chip("subj","TIK","TIK")}
+  </div>
+  <div class="filters">
+    ${chip("status","all","Çdo gjendje")}${chip("status","planifikuar","Planifikuar")}${chip("status","kryer","Kryer")}${chip("status","vonuar","Vonuar")}${chip("status","shtyrë","Shtyrë")}
+    <select id="fteacher" aria-label="Mësuesi" class="btn"><option value="all">Çdo mësues</option>${teachers.map(t=>`<option ${f.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select>
+    <button class="btn primary small" id="addExtra">+ Vëzhgim shtesë</button>
+  </div>
+  <div class="tablewrap"><table><thead><tr><th>Data</th><th>Mësuesi/ja</th><th>Lënda</th><th>Klasa</th><th>Ora</th><th>Shkolla</th><th>Gjendja</th><th>Rezultati</th></tr></thead><tbody>${rows||`<tr><td colspan="8" class="empty">Asnjë vëzhgim me këto filtra.</td></tr>`}</tbody></table></div>
+  <p class="legend">Kliko një rresht për të hapur instrumentin e vëzhgimit. Në fund të orës: plotëso nivelet, rrishiko tekstet model dhe shtyp "Ruaj".</p>`;
+}
+function bindMon(){
+  view.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{state.filter[b.dataset.f]=b.dataset.v;render();});
+  view.querySelectorAll("[data-open]").forEach(r=>r.onclick=()=>openObs(r.dataset.open));
+  $("#fteacher").onchange=e=>{state.filter.teacher=e.target.value;render();};
+  $("#addExtra").onclick=()=>{const id="x-"+Date.now().toString(36);state.openId=id;state.openObj={id,date:today(),planDate:today(),teacher:Object.keys(TEACHERS).sort()[0],subject:"",klasa:"",ora:"",shift:"Dita",cycle:3,extra:true,doc:{}};state.draft=null;state.tab="monitorimi";render();window.scrollTo(0,0);};
+}
+function openObs(id){
+  const o=allObs().find(x=>x.id===id);if(!o)return;
+  state.openId=id;state.openObj=o;state.draft=null;state.tab="monitorimi";state.vv=null;history.replaceState(null,"","#monitorimi");render();window.scrollTo(0,0);
+}
+function draftOf(){
+  if(!state.draft){const o=state.openObj,d=o.doc||{};
+    const base={status:d.status||"kryer",date:o.date,klasa:o.klasa,ora:o.ora,shift:o.shift,teacher:o.teacher,subject:o.subject||(TEACHERS[o.teacher]||[""])[0],
+      tema:d.tema||"",objektivi:d.objektivi||"",lloji:d.lloji||"Mësim i ri",total:d.total||"",present:d.present||"",duration:d.duration||"45",
+      scores:{...(d.scores||{})},ev:{...(d.ev||{})},strengths:d.strengths||"",improve:d.improve||"",recs:d.recs||"",recsDue:d.recsDue||"",recsDone:!!d.recsDone,discussedOn:d.discussedOn||"",followup:!!d.followup,savedAt:d.savedAt||""};
+    if(!base.strengths&&!base.improve&&!base.recs){Object.assign(base,defaultTexts(base,null));base.isModel=true;}
+    state.draft=base;}
+  return state.draft;
+}
+function formView(){
+  const o=state.openObj,d=draftOf();const sc=scoreOf({scores:d.scores}),lv=levelOf(sc.pct);
+  const groups=INSTR.map(g=>{const gp=sc.groups[g.id];
+    return `<div class="grp"><h3><span>${g.id} · ${esc(g.t)}</span><span class="mono" data-gp="${g.id}">${gp==null?"–":gp+"%"}</span></h3>${g.i.map((t,k)=>{const key=gkey(g,k),v=d.scores[key]||0;
+      return `<div class="ind"><div class="t">${esc(t[0])}<span class="look">${esc(t[1])}</span></div><div class="seg" role="group" aria-label="${esc(t[0])}">${SCALE.map(([n,l])=>`<button type="button" data-k="${key}" data-v="${n}" aria-pressed="${v===n}" title="${n} · ${l}">${n}</button>`).join("")}<button type="button" data-k="${key}" data-v="0" aria-pressed="${!v}" title="Nuk vlerësohet">–</button></div></div>`;}).join("")}
+      <div class="ev"><label class="f">Evidenca dhe vërejtje për ${g.id} (ç'u pa, ç'u dëgjua, ç'u kontrollua)<textarea data-ev="${g.id}">${esc(d.ev[g.id]||"")}</textarea></label></div></div>`;}).join("");
+  const ident=o.extra?`<label class="f">Mësuesi/ja<select id="f_teacher">${Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b)).map(t=>`<option ${d.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
+     <label class="f">Lënda<select id="f_subject">${["Matematikë","Fizikë","TIK"].map(s=>`<option ${d.subject===s?"selected":""}>${s}</option>`).join("")}</select></label>`:
+     `<div><div class="muted" style="font-size:12.5px">Mësuesi/ja</div><strong>${esc(o.teacher)}</strong></div><div><div class="muted" style="font-size:12.5px">Lënda</div><strong>${esc(o.subject)}</strong></div>`;
+  const tname=o.extra?d.teacher:o.teacher;
+  const sf=state.selfForms[o.id];
+  const link=ARTIFACT_URL+"#mesues-"+o.id;
+  return `<button class="btn small" id="back">← Kthehu te lista</button>
+  <section class="panel" style="margin-top:12px">
+    <h2 style="margin-bottom:12px">Fletë vëzhgimi i orës mësimore</h2>
+    <div class="sec" style="margin-top:0"><h3 class="st">1 · Të dhënat e orës</h3>
+    <div class="grid2" style="margin-top:10px">${ident}
+      <label class="f">Data<input type="date" id="f_date" value="${esc(d.date)}"></label>
+      <label class="f">Klasa<input id="f_klasa" value="${esc(d.klasa)}"></label>
+      <label class="f">Ora<input id="f_ora" value="${esc(d.ora)}" placeholder="p.sh. 3 (10:10)"></label>
+      <label class="f">Shkolla<select id="f_shift">${["Dita","KP"].map(s=>`<option ${d.shift===s?"selected":""}>${s}</option>`).join("")}</select></label>
+      <label class="f">Lloji i orës<select id="f_lloji">${["Mësim i ri","Përsëritje","Ushtrime","Laborator / praktikë","Test / vlerësim","Projekt"].map(s=>`<option ${d.lloji===s?"selected":""}>${s}</option>`).join("")}</select></label>
+      <label class="f">Nxënës të pranishëm<input id="f_present" inputmode="numeric" value="${esc(d.present)}"></label>
+      <label class="f">Nxënës gjithsej në klasë<input id="f_total" inputmode="numeric" value="${esc(d.total)}"></label>
+      <label class="f">Kohëzgjatja e vëzhgimit (min)<input id="f_duration" inputmode="numeric" value="${esc(d.duration)}"></label>
+      <label class="f">Gjendja<select id="f_status">${[["kryer","Kryer"],["shtyrë","Shtyrë"],["pa-kryer","Nuk u krye"]].map(([v,l])=>`<option value="${v}" ${d.status===v?"selected":""}>${l}</option>`).join("")}</select></label>
+    </div>
+    <div class="grid2" style="margin-top:12px;grid-template-columns:1fr 1fr"><label class="f">Tema e orës<input id="f_tema" value="${esc(d.tema)}"></label><label class="f">Qëllimi / rezultatet e pritura të orës<input id="f_objektivi" value="${esc(d.objektivi)}"></label></div></div>
+    <div class="sec"><h3 class="st">2 · Instrumenti i vëzhgimit (Fusha 2 e ASCAP)</h3>
+    <div class="scalebox">${SCALE.map(([n,l,t])=>`<div><b>${n}</b> ${l}: ${esc(t)}</div>`).join("")}<div><b>–</b> Nuk vlerësohet (nuk zbatohet ose nuk u pa)</div></div>
+    <p class="legend">Përqindja = pikët e dhëna nga maksimumi i treguesve të vlerësuar. 90–100% shumë mirë, 75–89% mirë, 51–74% mjaftueshëm, deri në 50% dobët.</p>
+    ${groups}</div>
+    <div class="sec"><h3 class="st">3 · Rezultati i përgjithshëm</h3>
+      <div class="grp"><h3><span>Rezultati i përgjithshëm i orës</span><span id="total" class="mono">${sc.pct==null?"–":sc.pct+"% · "+lv}</span></h3></div>
+      <p class="legend" id="modelnote">${d.isModel?"Tekstet më poshtë janë model i gatshëm. Ndryshoji sipas orës së vëzhguar.":"Tekstet janë të plotësuara. Mund t'i ndryshosh ose t'i rimodelosh nga nivelet."}</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0"><button class="btn small" id="remodel">Rimodelo tekstet nga nivelet</button><button class="btn small" id="resetmodel">Rivendos modelin e përgjithshëm</button></div>
+      <div class="grid2" style="grid-template-columns:1fr">
+        <label class="f">Pikat e forta<textarea class="big" id="f_strengths">${esc(d.strengths)}</textarea></label>
+        <label class="f">Fushat për përmirësim<textarea class="big" id="f_improve">${esc(d.improve)}</textarea></label>
+        <label class="f">Rekomandime të shkruara<textarea class="big" id="f_recs">${esc(d.recs)}</textarea></label>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <label class="f">Diskutuar me mësuesin më<input type="date" id="f_disc" value="${esc(d.discussedOn)}"></label>
+        <label class="f">Afati i rekomandimeve<input type="date" id="f_due" value="${esc(d.recsDue)}"></label>
+        <label class="f" style="justify-content:flex-end"><span><input type="checkbox" id="f_recsDone" ${d.recsDone?"checked":""}> Rekomandimet u zbatuan</span></label>
+        <label class="f" style="justify-content:flex-end"><span><input type="checkbox" id="f_follow" ${d.followup?"checked":""}> Duhet vëzhgim rishikues</span></label>
+      </div>
+    </div>
+    <div class="sec"><h3 class="st">4 · Vetëvlerësimi i mësuesit</h3>
+      <p class="legend">Dërgoja mësuesit këtë lidhje në fund të orës. Mësuesi duhet ta ketë faqen të ndarë me të (Ndaj → Kontribuues) dhe të hyjë me llogarinë e tij. Përgjigjet ruhen këtu.</p>
+      <div class="linkbox"><input id="linkIn" readonly value="${esc(link)}" aria-label="Lidhja e vetëvlerësimit"><button class="btn small" id="copyLink">Kopjo lidhjen</button><button class="btn small" id="openSelf">Plotëso në emër të mësuesit</button></div>${location.protocol==="file:"?`<p class="sub" style="margin-top:6px">Kjo lidhje u hapet mësuesve vetëm kur regjistri është vendosur online (p.sh. GitHub Pages). Nga skedari në kompjuter nuk hapet dot nga të tjerët.</p>`:""}
+      ${sf?selfSummary(sf,sc.pct):`<p class="legend" style="margin-top:10px">Ende pa vetëvlerësim nga ${esc(tname)}.</p>`}
+    </div>
+    <div class="savebar"><span class="msg" id="saved">${d.savedAt?"Ruajtur "+esc(d.savedAt):"Ende pa ruajtur"}</span><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dlObs">Shkarko për printim</button><button class="btn" id="cancel">Mbyll</button><button class="btn primary" id="save">Ruaj</button></span></div>
+  </section>`;
+}
+function selfSummary(sf,obsPct){
+  const sp=selfScore(sf);
+  return `<div class="selfcmp"><p style="margin:10px 0 4px"><strong>Vetëvlerësimi i dërguar</strong> ${sf.at?`<span class="muted">· ${esc(fmtShort((sf.at||"").slice(0,10)))}${sf.by==="nëndrejtori"?" (plotësuar nga nëndrejtori)":""}</span>`:""}
+  ${sp==null?"":pill("Mësuesi: "+sp+" %",levelCls(levelOf(sp)))} ${obsPct==null?"":pill("Vëzhgimi: "+obsPct+" %",levelCls(levelOf(obsPct)))}</p>
+  <div class="tablewrap"><table style="min-width:0"><tbody>${SELF_ITEMS.map(([k,t])=>`<tr><td>${esc(t)}</td><td class="mono">${sf[k]||"–"}</td></tr>`).join("")}
+  ${SELF_TEXTS.map(([k,t])=>sf[k]?`<tr><td colspan="2"><strong>${esc(t)}</strong><br>${esc(sf[k]).replace(/\n/g,"<br>")}</td></tr>`:"").join("")}</tbody></table></div></div>`;
+}
+function bindForm(){
+  const d=draftOf(),o=state.openObj;
+  $("#back").onclick=$("#cancel").onclick=()=>{state.openObj=null;state.openId=null;state.draft=null;render();};
+  const upd=()=>{const sc=scoreOf({scores:d.scores}),lv=levelOf(sc.pct);$("#total").textContent=sc.pct==null?"–":sc.pct+"% · "+lv;
+    view.querySelectorAll("[data-gp]").forEach(el=>{const v=sc.groups[el.dataset.gp];el.textContent=v==null?"–":v+"%";});};
+  view.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{const k=b.dataset.k,v=+b.dataset.v;if(v)d.scores[k]=v;else delete d.scores[k];
+    b.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));upd();});
+  view.querySelectorAll("[data-ev]").forEach(t=>t.oninput=()=>{d.ev[t.dataset.ev]=t.value;});
+  const bind=(id,key,cb)=>{const el=$("#"+id);if(!el)return;el.oninput=el.onchange=()=>{d[key]=el.type==="checkbox"?el.checked:el.value;if(cb)cb();};};
+  ["date","klasa","ora","shift","status","present","total","duration","tema","objektivi","lloji"].forEach(k=>bind("f_"+k,k));
+  const textChanged=()=>{d.isModel=false;$("#modelnote").textContent="Tekstet janë të plotësuara. Mund t'i ndryshosh ose t'i rimodelosh nga nivelet.";};
+  bind("f_strengths","strengths",textChanged);bind("f_improve","improve",textChanged);bind("f_recs","recs",textChanged);
+  bind("f_disc","discussedOn");bind("f_due","recsDue");bind("f_recsDone","recsDone");bind("f_follow","followup");
+  bind("f_teacher","teacher",()=>{const s=TEACHERS[d.teacher]||[];if(s.length&&!s.includes(d.subject)){d.subject=s[0];$("#f_subject").value=s[0];}$("#linkIn").value=ARTIFACT_URL+"#mesues-"+o.id;});bind("f_subject","subject");
+  const setTexts=t=>{d.strengths=t.strengths;d.improve=t.improve;d.recs=t.recs;$("#f_strengths").value=t.strengths;$("#f_improve").value=t.improve;$("#f_recs").value=t.recs;};
+  $("#remodel").onclick=()=>{const sc=scoreOf({scores:d.scores});if(sc.n===0){toast("Plotëso fillimisht nivelet, pastaj rimodelo tekstet.");return;}setTexts(defaultTexts(d,sc.groups));d.isModel=false;$("#modelnote").textContent="Tekstet u rimodeluan nga nivelet. Ndryshoji sipas orës.";};
+  $("#resetmodel").onclick=()=>{setTexts(defaultTexts(d,null));d.isModel=true;$("#modelnote").textContent="U rivendos modeli i përgjithshëm. Ndryshoje sipas orës së vëzhguar.";};
+  $("#copyLink").onclick=async()=>{const i=$("#linkIn");try{await navigator.clipboard.writeText(i.value);toast("Lidhja u kopjua.");}catch(e){i.focus();i.select();toast("Zgjidhe lidhjen dhe kopjoje me Ctrl+C.");}};
+  $("#openSelf").onclick=()=>{state.vv=o.id;history.replaceState(null,"","#vv-"+o.id);render();window.scrollTo(0,0);};
+  $("#dlObs").onclick=()=>downloadHtml("vezhgim-"+slug(d.teacher||o.teacher)+"-"+(d.date||"")+".html",docShell("Fletë vëzhgimi "+(o.teacher||d.teacher),obsPage(o,d,state.selfForms[o.id])));
+  $("#save").onclick=async()=>{
+    const msg=$("#saved");const now=new Date();const stamp=fmtShort(today())+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+    if(!d.date){msg.className="msg err";msg.textContent="Zgjidh datën e vëzhgimit para ruajtjes.";return;}
+    const data={...d,savedAt:stamp,extra:!!o.extra};delete data.isModel;
+    if(!o.extra){delete data.teacher;delete data.subject;}
+    const btn=$("#save");btn.disabled=true;msg.className="msg";msg.textContent="Duke ruajtur…";
+    const r=await setDoc("obs",o.id,data);btn.disabled=false;
+    if(r.ok){d.savedAt=stamp;state.obsDocs[o.id]=data;msg.className="msg ok";msg.textContent="Ruajtur "+stamp;toast("Vëzhgimi u ruajt.");}
+    else{msg.className="msg err";msg.textContent="Nuk u ruajt: "+r.err;toast("Nuk u ruajt. "+r.err);}
+  };
+}
+
+/* ---------- Vetëvlerësimi ---------- */
+function selfView(admin){
+  const id=state.vv;const p=PLAN_OBS.find(r=>r[0]===id);
+  const ex=state.obsDocs[id]||{};
+  if(!state.selfDraft||state.selfDraft._id!==id){
+    const old=state.selfForms[id]||{};
+    state.selfDraft={_id:id,teacher:old.teacher||(p?p[2]:ex.teacher||""),subject:old.subject||(p?p[3]:ex.subject||""),klasa:old.klasa||(p?p[4]:ex.klasa||""),date:old.date||(p?p[1]:ex.date||today()),tema:old.tema||"",...Object.fromEntries(SELF_ITEMS.map(([k])=>[k,old[k]||0])),...Object.fromEntries(SELF_TEXTS.map(([k])=>[k,old[k]||""])),sent:false};
+  }
+  const s=state.selfDraft;
+  return `${admin?`<button class="btn small" id="sback">← Kthehu te vëzhgimi</button>`:""}
+  <section class="panel" style="margin-top:${admin?12:0}px;max-width:760px">
+    <h2>Vetëvlerësimi pas orës mësimore</h2>
+    <p class="sub" style="margin-bottom:12px">Plotësoje pas orës së vëzhguar. Përgjigjet i shihni vetëm ju dhe nëndrejtori.${admin?" Po e plotëson në emër të mësuesit.":""}</p>
+    <div class="grid2">
+      <label class="f">Mësuesi/ja<select id="s_teacher">${Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b)).map(t=>`<option ${s.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
+      <label class="f">Lënda<select id="s_subject">${["Matematikë","Fizikë","TIK"].map(x=>`<option ${s.subject===x?"selected":""}>${x}</option>`).join("")}</select></label>
+      <label class="f">Klasa<input id="s_klasa" value="${esc(s.klasa)}"></label>
+      <label class="f">Data<input type="date" id="s_date" value="${esc(s.date)}"></label>
+    </div>
+    <label class="f" style="margin-top:12px">Tema e orës<input id="s_tema" value="${esc(s.tema)}"></label>
+    <div class="sec"><h3 class="st">Si e vlerësoj orën time</h3>
+      <div class="scalebox">${SCALE.map(([n,l])=>`<div><b>${n}</b> ${l}</div>`).join("")}</div>
+      ${SELF_ITEMS.map(([k,t])=>`<div class="ind" style="padding-left:0;padding-right:0"><div class="t">${esc(t)}</div><div class="seg" role="group" aria-label="${esc(t)}">${SCALE.map(([n,l])=>`<button type="button" data-sk="${k}" data-v="${n}" aria-pressed="${s[k]===n}" title="${n} · ${l}">${n}</button>`).join("")}</div></div>`).join("")}
+    </div>
+    <div class="sec"><h3 class="st">Reflektimi im</h3>
+      <div class="grid2" style="grid-template-columns:1fr;margin-top:10px">${SELF_TEXTS.map(([k,t,ph])=>`<label class="f">${esc(t)}<textarea id="s_${k}" placeholder="${esc(ph)}">${esc(s[k])}</textarea></label>`).join("")}</div>
+    </div>
+    <div class="savebar"><span class="msg" id="smsg">${s.sent?"U dërgua":"Ende pa dërguar"}</span><span><button class="btn primary" id="ssend">Dërgo vetëvlerësimin</button></span></div>
+  </section>`;
+}
+function bindSelf(admin){
+  const s=state.selfDraft,id=state.vv;
+  if(admin)$("#sback").onclick=()=>{state.vv=null;history.replaceState(null,"","#monitorimi");render();};
+  ["teacher","subject","klasa","date","tema"].forEach(k=>{const el=$("#s_"+k);el.oninput=el.onchange=()=>{s[k]=el.value;};});
+  SELF_TEXTS.forEach(([k])=>{const el=$("#s_"+k);el.oninput=()=>{s[k]=el.value;};});
+  view.querySelectorAll("[data-sk]").forEach(b=>b.onclick=()=>{s[b.dataset.sk]=+b.dataset.v;b.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));});
+  $("#ssend").onclick=async()=>{
+    const msg=$("#smsg"),btn=$("#ssend");
+    if(!SELF_ITEMS.some(([k])=>s[k])){msg.className="msg err";msg.textContent="Vlerëso të paktën një pohim para dërgimit.";return;}
+    const data={teacher:s.teacher,subject:s.subject,klasa:s.klasa,date:s.date,tema:s.tema,at:new Date().toISOString(),by:admin?"nëndrejtori":"mësuesi"};
+    SELF_ITEMS.forEach(([k])=>{if(s[k])data[k]=s[k];});SELF_TEXTS.forEach(([k])=>{data[k]=s[k];});
+    btn.disabled=true;msg.className="msg";msg.textContent="Duke dërguar…";
+    try{if(window.__STANDALONE&&window.__TEACHER){showCode(id,data);s.sent=true;msg.className="msg ok";msg.textContent="Vetëvlerësimi u plotësua. Dërgoja nëndrejtorit me kodin më poshtë.";toast("Kopjo kodin dhe dërgoje.");}else{await saveSelf(id,data);s.sent=true;msg.className="msg ok";msg.textContent="U dërgua. Faleminderit.";if(admin)state.selfForms[id]=data;toast("Vetëvlerësimi u ruajt.");}}
+    catch(e){console.error(e);msg.className="msg err";msg.textContent="Nuk u dërgua: "+errText(e);}
+    btn.disabled=false;
+  };
+}
+
+/* ---------- Veprimtaritë, Matura, Mësuesit ---------- */
+function veprimtarite(){
+  const groups=[...new Set(TASKS.map(t=>t.g))].filter(g=>g!==GM);const f=state.tfilter;
+  const chip=(v,l)=>`<button class="chip" data-tf="${esc(v)}" aria-pressed="${f===v}">${esc(l)}</button>`;
+  const shown=TASKS.filter(t=>t.g!==GM).filter(t=>f==="all"||(f==="vonuar"?(!taskDone(t.id)&&t.e&&t.e<today()):f==="hapur"?!taskDone(t.id):t.g===f));
+  const byG={};shown.forEach(t=>(byG[t.g]=byG[t.g]||[]).push(t));
+  return `<div class="filters">${chip("all","Të gjitha")}${chip("hapur","Të pakryera")}${chip("vonuar","Vonuar")}${groups.map(g=>chip(g,g)).join("")}</div>
+  ${Object.keys(byG).map(g=>`<section class="panel" style="margin-bottom:14px"><h2>${esc(g)} <span class="muted" style="font-weight:400;font-size:13px">· ${byG[g].filter(t=>taskDone(t.id)).length}/${byG[g].length}</span></h2>${byG[g].map(taskHtml).join("")}</section>`).join("")||`<div class="empty">Asnjë veprimtari me këtë filtër.</div>`}`;
+}
+function taskHtml(t){
+  const d=state.taskDocs[t.id]||{},[st,cl]=taskStatus(t);
+  return `<div class="task ${d.done?"done":""}" data-t="${t.id}"><input type="checkbox" ${d.done?"checked":""} aria-label="Kryer"><div class="tt">${esc(t.t)}</div>
+  <div class="meta"><span>${esc(t.k)}</span>${t.p?`<span>Provë: ${esc(t.p)}</span>`:""}${pill(st,cl)}${d.done&&d.doneOn?`<span>kryer më ${esc(fmtShort(d.doneOn))}</span>`:""}</div>
+  <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button></div></div>`;
+}
+function bindTasks(){view.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{state.tfilter=b.dataset.tf;render();});bindTaskRows(view);}
+function bindTaskRows(root){
+  root.querySelectorAll(".task[data-t]").forEach(row=>{
+    const id=row.dataset.t,cb=row.querySelector("input[type=checkbox]"),inp=row.querySelector(".note input"),btn=row.querySelector(".note button");
+    const save=async(done)=>{const old=state.taskDocs[id]||{};const doc={done,doneOn:done?(old.doneOn||today()):"",note:inp.value};
+      const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;return true;}toast("Nuk u ruajt. "+r.err);return false;};
+    cb.onchange=async()=>{const ok=await save(cb.checked);if(!ok)cb.checked=!cb.checked;else render();};
+    btn.onclick=async()=>{btn.disabled=true;const ok=await save(cb.checked);btn.disabled=false;if(ok){btn.textContent="Ruajtur";setTimeout(()=>{btn.textContent="Ruaj";},1500);}};
+  });
+}
+function matura(){
+  const tasks=TASKS.filter(t=>t.g===GM);
+  const rows=MCLASSES.map(c=>{const key=mkey(c);const d=state.matDocs[key]||{steps:{},note:""};
+    return `<div class="mrow" data-c="${esc(key)}"><strong>${esc(c)}</strong><div><div class="steps">${MSTEPS.map(([k,l])=>`<label><input type="checkbox" data-s="${k}" ${d.steps&&d.steps[k]?"checked":""}> ${esc(l)}</label>`).join("")}</div>
+      <div style="display:flex;gap:6px;margin-top:8px"><input class="mnote" placeholder="Shënim për klasën" value="${esc(d.note||"")}" style="flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:5px 8px;min-width:0" aria-label="Shënim për ${esc(c)}"><button class="btn small msave">Ruaj</button></div></div></div>`;}).join("");
+  return `<section class="panel" style="margin-bottom:14px"><h2>Matura Shtetërore 2027 · hapat e administratorit</h2>
+    <p class="sub" style="margin-bottom:6px">Provimet: 07–28.06.2027. Datat e brendshme janë orientuese deri sa të dalë udhëzimi vjetor i MASR.</p>${tasks.map(taskHtml).join("")}</section>
+  <section class="panel"><h2>Ecuria sipas klasave</h2>${rows}</section>`;
+}
+function bindMatura(){
+  bindTaskRows(view);
+  view.querySelectorAll(".mrow").forEach(row=>{
+    const key=row.dataset.c;
+    const save=async()=>{const steps={};row.querySelectorAll("input[data-s]").forEach(i=>steps[i.dataset.s]=i.checked);
+      const doc={steps,note:row.querySelector(".mnote").value};const r=await setDoc("matura",key,doc);if(r.ok){state.matDocs[key]=doc;return true;}toast("Nuk u ruajt. "+r.err);return false;};
+    row.querySelectorAll("input[data-s]").forEach(i=>i.onchange=()=>save());
+    const b=row.querySelector(".msave");b.onclick=async()=>{b.disabled=true;const ok=await save();b.disabled=false;if(ok){b.textContent="Ruajtur";setTimeout(()=>{b.textContent="Ruaj";},1500);}};
+  });
+}
+function mesuesit(){
+  const obs=allObs();
+  return Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b)).map(t=>{
+    const mine=obs.filter(o=>o.teacher===t);const done=mine.filter(o=>o.doc.status==="kryer");
+    const scs=done.map(o=>scoreOf(o.doc).pct).filter(p=>p!=null);const avg=scs.length?Math.round(scs.reduce((a,b)=>a+b,0)/scs.length):null;
+    const open=done.filter(o=>o.doc.recs&&!o.doc.recsDone).length;const selfN=mine.filter(o=>state.selfForms[o.id]).length;
+    return `<section class="panel tch"><div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px"><div><h3>${esc(t)}</h3><div class="muted" style="font-size:13px">${TEACHERS[t].join(" · ")}</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="mono">${done.length}/${mine.length} kryer</span>${avg==null?"":pill(avg+"% · "+levelOf(avg),levelCls(levelOf(avg)))}${open?pill(open+" rekomandime të hapura","warn"):""}${selfN?pill(selfN+" vetëvlerësime","acc"):""}<button class="btn small" data-dlt="${esc(t)}">Shkarko dosjen</button></div></div>
+      <div class="obs">${mine.map(o=>{const s=statusOf(o),sc=scoreOf(o.doc);return `<button data-open="${esc(o.id)}">${esc(fmtShort(o.date))} · ${esc(o.subject)} · ${esc(o.klasa)} ${sc.pct==null?pill(STAT[s][0],STAT[s][1]):pill(sc.pct+"%",levelCls(levelOf(sc.pct)))}</button>`;}).join("")}</div></section>`;
+  }).join("");
+}
+function bindTeachers(){
+  view.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openObs(b.dataset.open));
+  view.querySelectorAll("[data-dlt]").forEach(b=>b.onclick=()=>{const t=b.dataset.dlt;downloadHtml("dosja-"+slug(t)+".html",docShell("Dosja e monitorimit: "+t,teacherDossier(t)));});
+}
+
+/* ---------- Shkarkimi për printim ---------- */
+const slug=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ç/g,"c").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+async function downloadHtml(filename,html){
+  if(!dlcap){toast("Shkarkimi nuk është i disponueshëm në këtë pamje.");return;}
+  try{await dlcap.save({filename,data:html});toast("Hape skedarin e shkarkuar dhe shtype me Ctrl+P (Cmd+P).");}
+  catch(e){if(!e||e.code!=="declined")toast("Skedari nuk u ruajt. "+errText(e));}
+}
+function docShell(title,body){
+  return `<!doctype html><html lang="sq"><head><meta charset="utf-8"><title>${esc(title)}</title><style>
+  @page{size:A4;margin:15mm 14mm}
+  *{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.4;color:#111;margin:0;padding:16px;max-width:210mm;margin:0 auto}
+  h1{font-size:17pt;margin:0 0 4px}h2{font-size:13pt;margin:16px 0 6px;border-bottom:2px solid #333;padding-bottom:3px}h3{font-size:11pt;margin:12px 0 4px}
+  table{border-collapse:collapse;width:100%;margin:6px 0}th,td{border:1px solid #666;padding:4px 7px;text-align:left;vertical-align:top;font-size:10pt}th{background:#e8ecf2}
+  .gh td{background:#dde6f5;font-weight:bold}.num{text-align:center;white-space:nowrap}.sm{font-size:9pt;color:#444}
+  .page{page-break-after:always}.page:last-child{page-break-after:auto}
+  .sig{display:flex;gap:40px;margin-top:34px}.sig div{flex:1;border-top:1px solid #000;padding-top:4px;font-size:10pt}
+  .noprint{background:#fff6d6;border:1px solid #d9b84a;padding:8px 12px;margin-bottom:14px;font-size:10pt}
+  .box{border:1px solid #666;padding:6px 9px;margin:4px 0;min-height:38px}
+  @media print{.noprint{display:none}body{padding:0}}
+  </style></head><body><div class="noprint">Për ta printuar: shtyp Ctrl+P (ose Cmd+P) dhe zgjidh "Ruaj si PDF" ose printerin.</div>${body}</body></html>`;
+}
+const nl=s=>esc(s||"").replace(/\n/g,"<br>");
+function lvLabel(v){const r=SCALE.find(x=>x[0]===v);return r?v+" · "+r[1]:"–";}
+function obsPage(o,d,sf){
+  const teacher=o.extra?d.teacher:o.teacher,subject=o.extra?d.subject:o.subject;
+  const sc=scoreOf({scores:d.scores||{}}),lv=levelOf(sc.pct);
+  const rows=INSTR.map(g=>`<tr class="gh"><td colspan="2">${g.id} · ${esc(g.t)}</td><td class="num">${sc.groups[g.id]==null?"–":sc.groups[g.id]+"%"}</td></tr>`+
+    g.i.map((t,k)=>`<tr><td>${esc(t[0])}</td><td class="num" colspan="2">${lvLabel((d.scores||{})[gkey(g,k)]||(d.scores||{})[g.id+"."+k])}</td></tr>`).join("")+
+    (d.ev&&d.ev[g.id]?`<tr><td colspan="3" class="sm"><b>Evidenca:</b> ${nl(d.ev[g.id])}</td></tr>`:"")).join("");
+  return `<div class="page"><h1>Fletë vëzhgimi i orës mësimore</h1><div class="sm">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027 · Nëndrejtor: Mendim Mera</div>
+  <table><tr><th>Mësuesi/ja</th><td>${esc(teacher)}</td><th>Lënda</th><td>${esc(subject)}</td></tr>
+  <tr><th>Data</th><td>${esc(fmt(d.date||o.date))}</td><th>Klasa</th><td>${esc(d.klasa||o.klasa)}</td></tr>
+  <tr><th>Ora</th><td>${esc(d.ora||o.ora)}</td><th>Shkolla</th><td>${esc(d.shift||o.shift)}</td></tr>
+  <tr><th>Tema e orës</th><td colspan="3">${esc(d.tema)}</td></tr><tr><th>Qëllimi i orës</th><td colspan="3">${esc(d.objektivi)}</td></tr>
+  <tr><th>Lloji i orës</th><td>${esc(d.lloji)}</td><th>Nxënës</th><td>${esc(d.present)} të pranishëm nga ${esc(d.total)} · vëzhgim ${esc(d.duration)} min</td></tr></table>
+  <h2>Instrumenti i vëzhgimit (Fusha 2, ASCAP)</h2>
+  <div class="sm">Shkalla: 4 shumë mirë, 3 mirë, 2 mjaftueshëm, 1 dobët.</div>
+  <table><tr><th>Treguesi</th><th class="num" colspan="2">Niveli</th></tr>${rows}
+  <tr class="gh"><td>Rezultati i përgjithshëm</td><td class="num" colspan="2">${sc.pct==null?"–":sc.pct+"% · "+lv}</td></tr></table>
+  <h3>Pikat e forta</h3><div class="box">${nl(d.strengths)}</div>
+  <h3>Fushat për përmirësim</h3><div class="box">${nl(d.improve)}</div>
+  <h3>Rekomandime</h3><div class="box">${nl(d.recs)}</div>
+  <table><tr><th>Diskutuar me mësuesin më</th><td>${esc(fmtShort(d.discussedOn))}</td><th>Afati i rekomandimeve</th><td>${esc(fmtShort(d.recsDue))}</td></tr>
+  <tr><th>Rekomandimet u zbatuan</th><td>${d.recsDone?"Po":"Jo"}</td><th>Vëzhgim rishikues</th><td>${d.followup?"Po":"Jo"}</td></tr></table>
+  <div class="sig"><div>Nëndrejtori (Mendim Mera)</div><div>Mësuesi/ja: ${esc(teacher)}</div></div></div>`+(sf?selfPage(sf,teacher,sc.pct):"");
+}
+function selfPage(sf,teacher,obsPct){
+  const sp=selfScore(sf);
+  return `<div class="page"><h1>Vetëvlerësimi i mësuesit pas orës</h1><div class="sm">${esc(teacher)} · ${esc(sf.subject)} · ${esc(sf.klasa)} · ${esc(fmtShort(sf.date))}${sf.by==="nëndrejtori"?" · plotësuar nga nëndrejtori":""}</div>
+  <table><tr><th>Tema e orës</th><td>${esc(sf.tema)}</td></tr></table>
+  <table><tr><th>Pohimi</th><th class="num">Niveli</th></tr>${SELF_ITEMS.map(([k,t])=>`<tr><td>${esc(t)}</td><td class="num">${lvLabel(sf[k])}</td></tr>`).join("")}
+  <tr class="gh"><td>Vetëvlerësimi i përgjithshëm${obsPct==null?"":" (vëzhgimi: "+obsPct+"%)"}</td><td class="num">${sp==null?"–":sp+"%"}</td></tr></table>
+  ${SELF_TEXTS.map(([k,t])=>`<h3>${esc(t)}</h3><div class="box">${nl(sf[k])}</div>`).join("")}
+  <div class="sig"><div>Mësuesi/ja: ${esc(teacher)}</div><div>Nëndrejtori</div></div></div>`;
+}
+function summaryTable(list){
+  return `<table><tr><th>Data</th><th>Mësuesi/ja</th><th>Lënda</th><th>Klasa</th><th>Shkolla</th><th>Gjendja</th><th class="num">Rezultati</th></tr>${list.map(o=>{const sc=scoreOf(o.doc);return `<tr><td>${esc(fmtShort(o.date))}</td><td>${esc(o.teacher)}</td><td>${esc(o.subject)}</td><td>${esc(o.klasa)}</td><td>${esc(o.shift)}</td><td>${esc(STAT[statusOf(o)][0])}</td><td class="num">${sc.pct==null?"–":sc.pct+"% · "+levelOf(sc.pct)}</td></tr>`;}).join("")}</table>`;
+}
+function doneObs(list){return list.filter(o=>o.doc.status==="kryer"||(o.doc.scores&&Object.keys(o.doc.scores).length));}
+function taskTable(list){return `<table><tr><th>Veprimtaria</th><th>Afati</th><th>Prova</th><th>Gjendja</th><th>Shënim</th></tr>${list.map(t=>{const d=state.taskDocs[t.id]||{};return `<tr><td>${esc(t.t)}</td><td>${esc(t.k)}</td><td>${esc(t.p)}</td><td>${d.done?"Kryer "+esc(fmtShort(d.doneOn)):esc(taskStatus(t)[0])}</td><td>${esc(d.note)}</td></tr>`;}).join("")}</table>`;}
+function fullDossier(){
+  const obs=allObs();
+  const groups=[...new Set(TASKS.map(t=>t.g))];
+  const mrows=MCLASSES.map(c=>{const d=state.matDocs[mkey(c)]||{steps:{}};return `<tr><td>${esc(c)}</td>${MSTEPS.map(([k])=>`<td class="num">${d.steps&&d.steps[k]?"✓":"–"}</td>`).join("")}<td>${esc(d.note)}</td></tr>`;}).join("");
+  return `<div class="page"><h1>Dosja e nëndrejtorit</h1><div class="sm">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027</div>
+  <p>Nëndrejtor: Mendim Mera · Përgatitur më ${esc(fmtShort(today()))}</p>
+  <h2>Grafiku i monitorimit të orëve mësimore</h2>${summaryTable(obs)}</div>`+
+  doneObs(obs).map(o=>obsPage(o,{...o.doc,date:o.date,klasa:o.klasa,ora:o.ora,shift:o.shift},state.selfForms[o.id])).join("")+
+  `<div class="page"><h1>Veprimtaritë e planit vjetor</h1>${groups.map(g=>`<h2>${esc(g)}</h2>${taskTable(TASKS.filter(t=>t.g===g))}`).join("")}
+  <h2>Matura Shtetërore: ecuria sipas klasave</h2><table><tr><th>Klasa</th>${MSTEPS.map(s=>`<th class="num">${esc(s[1])}</th>`).join("")}<th>Shënim</th></tr>${mrows}</table></div>`;
+}
+function teacherDossier(t){
+  const mine=allObs().filter(o=>o.teacher===t);
+  return `<div class="page"><h1>Dosja e monitorimit: ${esc(t)}</h1><div class="sm">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027 · ${esc((TEACHERS[t]||[]).join(", "))}</div>
+  <h2>Vëzhgimet</h2>${summaryTable(mine)}</div>`+
+  doneObs(mine).map(o=>obsPage(o,{...o.doc,date:o.date,klasa:o.klasa,ora:o.ora,shift:o.shift},state.selfForms[o.id])).join("");
+}
+async function exportCsv(){
+  if(!dlcap){toast("Shkarkimi nuk është i disponueshëm në këtë pamje.");return;}
+  const q=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+  const head=["Data","Mësuesi","Lënda","Klasa","Ora","Shkolla","Gjendja","Rezultati %","Niveli","Pikat e forta","Për përmirësim","Rekomandime","Diskutuar më","Afati","Zbatuar","Vetëvlerësimi %"];
+  const lines=[head.map(q).join(",")];
+  allObs().forEach(o=>{const sc=scoreOf(o.doc);lines.push([fmtShort(o.date),o.teacher,o.subject,o.klasa,o.ora,o.shift,STAT[statusOf(o)][0],sc.pct??"",levelOf(sc.pct)||"",o.doc.strengths,o.doc.improve,o.doc.recs,o.doc.discussedOn,o.doc.recsDue,o.doc.recsDone?"po":"",selfScore(state.selfForms[o.id])??""].map(q).join(","));});
+  try{await dlcap.save({filename:"vezhgimet-2026-2027.csv",data:"﻿"+lines.join("\n")});}catch(e){if(!e||e.code!=="declined")toast("Skedari nuk u ruajt. "+errText(e));}
+}
+
+/* ---------- Kodi i vetëvlerësimit (mësuesi) dhe importi (nëndrejtori) ---------- */
+function encCode(id,data){return "VETEV1:"+btoa(unescape(encodeURIComponent(JSON.stringify({id,data}))));}
+function decCode(t){
+  t=String(t||"").trim();
+  if(t[0]==="{")return JSON.parse(t);
+  const m=t.match(/VETEV1:([A-Za-z0-9+\/=]+)/);if(!m)throw new Error("Kodi nuk njihet.");
+  return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+}
+function showCode(id,data){
+  const code=encCode(id,data);
+  const old=$("#codeBox");if(old)old.remove();
+  const box=document.createElement("section");box.id="codeBox";box.className="panel";box.style.cssText="margin-top:12px;max-width:760px";
+  box.innerHTML='<h3>Dërgoja nëndrejtorit</h3><p class="sub" style="margin:4px 0 8px">Kopjo kodin dhe dërgoje me WhatsApp, Viber ose email, ose shkarko skedarin dhe dërgoje si bashkëngjitje.</p><textarea id="codeTa" readonly rows="4" style="width:100%;font-family:var(--mono);font-size:12px"></textarea><div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary small" id="codeCopy">Kopjo kodin</button><button class="btn small" id="codeDl">Shkarko skedarin</button></div>';
+  view.appendChild(box);
+  const ta=$("#codeTa");ta.value=code;
+  $("#codeCopy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("Kodi u kopjua.");}catch(e){ta.focus();ta.select();toast("Zgjidhe kodin dhe kopjoje me Ctrl+C.");}};
+  $("#codeDl").onclick=()=>dlcap.save({filename:"vetevleresim-"+slug(data.teacher)+"-"+(data.date||"")+".json",data:JSON.stringify({id,data})});
+  box.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+async function importSelf(obj){
+  const id=obj&&obj.id,d=obj&&obj.data;
+  if(typeof id!=="string"||!d||typeof d!=="object")throw new Error("Formati nuk është i vlefshëm.");
+  if(!PLAN_OBS.some(r=>r[0]===id)&&!state.obsDocs[id])throw new Error("Vëzhgimi "+id+" nuk ekziston në këtë regjistër.");
+  const str=(v,n)=>String(v==null?"":v).slice(0,n);
+  const c={teacher:str(d.teacher,80),subject:str(d.subject,40),klasa:str(d.klasa,20),date:str(d.date,10),tema:str(d.tema,300),at:str(d.at,40)||new Date().toISOString(),by:"mësuesi"};
+  SELF_ITEMS.forEach(([k])=>{const v=+d[k];if(v>=1&&v<=4)c[k]=v;});
+  SELF_TEXTS.forEach(([k])=>{c[k]=str(d[k],2000);});
+  await db.collection("selfeval").doc("imp-"+id).set({forms:{[id]:c}});
+  return c;
+}
+function backupAll(){
+  const items={};
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(window.__BK.P))items[k]=localStorage.getItem(k);}
+  return JSON.stringify({v:1,saved:new Date().toISOString(),items});
+}
+function openDataDialog(){
+  let dlg=$("#dataDlg");if(dlg)dlg.remove();
+  dlg=document.createElement("dialog");dlg.id="dataDlg";
+  dlg.style.cssText="max-width:560px;width:calc(100% - 32px);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;padding:18px";
+  dlg.innerHTML='<h2>Importo vetëvlerësim nga mësuesi</h2><p class="sub" style="margin:0 0 8px">Ngjit kodin që të dërgoi mësuesi, ose zgjidh skedarin(et) .json.</p><textarea id="impTa" rows="3" style="width:100%;font-family:var(--mono);font-size:12px" placeholder="VETEV1:…"></textarea><input type="file" id="impFile" accept=".json,application/json" multiple style="margin-top:8px"><div style="margin-top:8px"><button class="btn primary small" id="impGo">Importo</button> <span class="msg" id="impMsg"></span></div><hr style="border:0;border-top:1px solid var(--line);margin:16px 0"><h2>Kopje rezervë</h2><p class="sub" style="margin:0 0 8px">Të gjitha të dhënat ruhen vetëm në këtë shfletues. Shkarko një kopje rregullisht dhe ruaje diku tjetër.</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn small" id="bkGo">Shkarko kopjen rezervë</button><label class="btn small" style="cursor:pointer">Rikthe nga kopja<input type="file" id="bkFile" accept=".json,application/json" hidden></label></div><p class="msg" id="bkMsg" style="margin-top:8px"></p><div style="text-align:right;margin-top:12px"><button class="btn small" id="dlgClose">Mbyll</button></div>';
+  document.body.appendChild(dlg);dlg.showModal();
+  $("#dlgClose").onclick=()=>dlg.close();
+  $("#impGo").onclick=async()=>{
+    const m=$("#impMsg");m.className="msg";let n=0,bad=[];
+    const texts=[];const t=$("#impTa").value.trim();if(t)texts.push(t);
+    for(const f of $("#impFile").files)texts.push(await f.text());
+    if(!texts.length){m.className="msg err";m.textContent="Ngjit një kod ose zgjidh një skedar.";return;}
+    for(const x of texts){try{await importSelf(decCode(x));n++;}catch(e){bad.push(e.message||String(e));}}
+    m.className="msg "+(bad.length?"err":"ok");m.textContent=n+" u importuan"+(bad.length?"; gabim: "+bad[0]:".");
+    if(n){$("#impTa").value="";$("#impFile").value="";}
+  };
+  $("#bkGo").onclick=()=>dlcap.save({filename:"regjistri-kopje-rezerve-"+today()+".json",data:backupAll()});
+  $("#bkFile").onchange=async e=>{
+    const m=$("#bkMsg");const f=e.target.files[0];if(!f)return;
+    try{
+      const o=JSON.parse(await f.text());
+      if(!o||!o.items||typeof o.items!=="object")throw new Error("Skedari nuk është kopje rezervë e këtij regjistri.");
+      const keys=Object.keys(o.items);if(!keys.length||keys.some(k=>!k.startsWith(window.__BK.P)))throw new Error("Skedari nuk është kopje rezervë e këtij regjistri.");
+      if(!confirm("Kjo zëvendëson të gjitha të dhënat aktuale me ato të kopjes. Të vazhdoj?"))return;
+      const rm=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k.startsWith(window.__BK.P))rm.push(k);}
+      rm.forEach(k=>localStorage.removeItem(k));keys.forEach(k=>localStorage.setItem(k,o.items[k]));
+      location.reload();
+    }catch(err){m.className="msg err";m.textContent=err.message||String(err);}
+  };
+}
+$("#dataBtn").onclick=openDataDialog;
+
+/* ---------- Nisja ---------- */
+function route(){const h=location.hash.slice(1);state.vv=null;
+  if(h.startsWith("vv-"))state.vv=h.slice(3);else if(h.startsWith("mesues-"))state.vv=h.slice(7);else if(["pasqyra","monitorimi","veprimtarite","matura","mesuesit"].includes(h))state.tab=h;}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.vv=null;state.openObj=null;state.draft=null;history.replaceState(null,"","#"+state.tab);render();});
+window.addEventListener("hashchange",()=>{route();state.openObj=null;render();});
+route();render();
+$("#exportBtn").onclick=exportCsv;
+$("#dossierBtn").onclick=()=>downloadHtml("dosja-nendrejtori-2026-2027.html",docShell("Dosja e nëndrejtorit 2026–2027",fullDossier()));
+
+(async()=>{
+  try{
+    db=await claude.use("db");user=await claude.use("user");dlcap=await claude.use("downloads");
+    if(dlcap){$("#exportBtn").hidden=false;$("#dossierBtn").hidden=false;}
+    if(window.__FB_AUTH&&!window.__TEACHER&&db){const b=document.createElement("button");b.className="btn small";b.textContent="Dil";b.onclick=()=>window.__FB_AUTH.signOut().then(()=>location.reload());$("#hdrbtns").appendChild(b);}
+    if(window.__STANDALONE&&!window.__TEACHER){$("#dataBtn").hidden=false;$("#banner").innerHTML='<div class="banner">Të dhënat ruhen vetëm në këtë shfletues e pajisje. Bëj kopje rezervë herë pas here nga butoni «Të dhënat».</div>';}
+  }catch(e){console.error(e);db=null;}
+  let admin=false;
+  try{admin=user?await user.canEdit():false;}catch(e){admin=false;}
+  state.isAdmin=!!admin;
+  if(!db){$("#banner").innerHTML='<div class="banner">'+(window.__FBERR?"Lidhja me Firebase dështoi: "+esc(window.__FBERR):"Ruajtja nuk është e lidhur.")+'</div>';}
+  render();
+  if(!db||!admin)return;
+  const timer=setTimeout(()=>{if(!(state.loaded.obs&&state.loaded.tasks&&state.loaded.mat))toast("Të dhënat e ruajtura nuk arrijnë dot të ngarkohen tani. Mund të jenë të vjetra.");},10000);
+  const sub=(coll,key,store)=>db.collection(coll).onSnapshot(snap=>{
+    const m={};snap.docs.forEach(d=>m[d.id]=d.data());state[store]=m;if(key)state.loaded[key]=true;
+    if(!state.loaded.obs||!state.loaded.tasks||!state.loaded.mat||(state.loaded.obs&&state.loaded.tasks&&state.loaded.mat))clearTimeout(timer);
+    if(!state.openObj&&!state.vv)render();
+  },e=>{if(key)state.loaded[key]=true;if(e&&e.code!=="revoked")toast("Gabim leximi ("+(e.code||"")+").");});
+  sub("obs","obs","obsDocs");sub("tasks","tasks","taskDocs");sub("matura","mat","matDocs");
+  db.collection("selfeval").onSnapshot(snap=>{
+    const forms={};
+    snap.docs.forEach(d=>{const fs=(d.data()||{}).forms||{};for(const[oid,f]of Object.entries(fs)){if(!forms[oid]||String(f.at||"")>String(forms[oid].at||""))forms[oid]=f;}});
+    state.selfForms=forms;if(!state.openObj&&!state.vv)render();
+  },e=>{if(e&&e.code!=="revoked")toast("Gabim leximi i vetëvlerësimeve ("+(e.code||"")+").");});
+})();
+</script>
+
+</body></html>
