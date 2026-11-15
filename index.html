@@ -138,10 +138,12 @@ textarea.big{min-height:130px;line-height:1.5}
     <button role="tab" data-tab="veprimtarite">Veprimtaritë</button>
     <button role="tab" data-tab="matura">Matura</button>
     <button role="tab" data-tab="mesuesit">Mësuesit</button>
+    <button role="tab" data-tab="cilesimet">Cilësimet</button>
   </nav>
   <main id="view"></main>
 </div>
 <div id="toast" hidden></div>
+<datalist id="grpList"></datalist>
 
 <script>
 /* Vendos këtu konfigurimin e Firebase (firebaseConfig). Nëse mbetet bosh, regjistri ruan vetëm në shfletues. */
@@ -391,20 +393,20 @@ let toastT=null;
 function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>{t.hidden=true;},6000);}
 
 function allObs(){
-  const list=PLAN_OBS.map(r=>{const d=state.obsDocs[r[0]]||{};return {id:r[0],date:d.date||r[1],planDate:r[1],teacher:r[2],subject:r[3],klasa:d.klasa||r[4],ora:d.ora||r[5],shift:r[6],cycle:r[7],doc:d,extra:false};});
+  const list=PLAN_OBS.map(r=>{const d=state.obsDocs[r[0]]||{};return {id:r[0],date:d.date||r[1],planDate:r[1],teacher:d.teacher||r[2],subject:d.subject||r[3],klasa:d.klasa||r[4],ora:d.ora||r[5],shift:r[6],cycle:r[7],doc:d,extra:false};});
   for(const[id,d]of Object.entries(state.obsDocs)){if(id.startsWith("x-"))list.push({id,date:d.date||"",planDate:d.date||"",teacher:d.teacher||"",subject:d.subject||"",klasa:d.klasa||"",ora:d.ora||"",shift:d.shift||"Dita",cycle:3,doc:d,extra:true});}
   return list.sort((a,b)=>a.date.localeCompare(b.date));
 }
 function scoreOf(doc){
   const sc=doc.scores||{};let sum=0,n=0;const groups={};
-  for(const g of INSTR){let gs=0,gn=0;g.i.forEach((_,k)=>{const v=sc[gkey(g,k)]||sc[g.id+"."+k];if(v){gs+=v;gn++;}});if(gn)groups[g.id]=Math.round(gs/(4*gn)*100);sum+=gs;n+=gn;}
+  for(const g of INSTR){let gs=0,gn=0;g.i.forEach((tt,k)=>{if(tt[2])return;const v=sc[gkey(g,k)]||sc[g.id+"."+k];if(v){gs+=v;gn++;}});if(gn)groups[g.id]=Math.round(gs/(4*gn)*100);sum+=gs;n+=gn;}
   return {pct:n?Math.round(sum/(4*n)*100):null,n,groups};
 }
 function selfScore(f){if(!f)return null;let s=0,n=0;SELF_ITEMS.forEach(([k])=>{if(f[k]){s+=f[k];n++;}});return n?Math.round(s/(4*n)*100):null;}
 function statusOf(o){const s=o.doc.status;if(s==="kryer")return"kryer";if(s==="shtyrë")return"shtyrë";if(s==="pa-kryer")return"pa-kryer";if(s==="hequr")return"hequr";return o.date<today()?"vonuar":"planifikuar";}
 const STAT={"kryer":["Kryer","good"],"planifikuar":["Planifikuar","acc"],"vonuar":["Vonuar","bad"],"shtyrë":["Shtyrë","warn"],"pa-kryer":["Nuk u krye","bad"],"hequr":["Hequr","warn"]};
 function TL(){const hid=id=>(state.taskDocs[id]||{}).hidden;
-  const base=TASKS.filter(t=>!hid(t.id));
+  const base=TASKS.filter(t=>!hid(t.id)).map(t=>({...t,...((state.taskDocs[t.id]||{}).ov||{})}));
   const cus=Object.entries(state.taskDocs).filter(([id,d])=>id.startsWith("c-")&&d&&!d.hidden).map(([id,d])=>({id,g:d.g||"Të tjera",t:d.t||"",k:d.k||"",s:d.s||null,e:d.e||null,p:d.p||"",custom:true}));
   return base.concat(cus);}
 function taskDone(id){return !!(state.taskDocs[id]&&state.taskDocs[id].done);}
@@ -440,15 +442,18 @@ function defaultTexts(d,pcts){
     return {strengths,improve,recs};
   }
   const due=fmtShort(addDays(d.date||today(),14));
-  return {
+  const tx=(state.taskDocs["cfg-settings"]||{}).texts||{};
+  const g0={
    strengths:"• Ora nisi në kohë dhe u zhvillua në një klimë pozitive pune.\n• Qëllimi i orës u njoftua dhe nxënësit u përfshinë në veprimtari.\n• Përmbajtja shkencore u trajtua saktë dhe me shembuj të përshtatshëm.\n• [Shto ose ndrysho pikat sipas orës së vëzhguar.]",
    improve:"• Diferencimi i detyrave sipas nivelit të nxënësve.\n• Përdorimi më i shpeshtë i pyetjeve të nivelit të lartë.\n• Përdorimi i TIK-ut ose i mjeteve mësimore.\n• [Shto ose ndrysho pikat sipas orës së vëzhguar.]",
    recs:"1. Të përfshihen në planin ditor detyra të diferencuara për nivele të ndryshme (afati: "+due+").\n2. Të përdoren pyetje të nivelit të lartë dhe të paktën një mjet mësimor ose TIK në çdo orë të re (afati: "+due+").\n3. Diskutim i ndjekjes së rekomandimeve me nëndrejtorin brenda 2 javësh."
   };
+  return {strengths:tx.strengths||g0.strengths,improve:tx.improve||g0.improve,recs:tx.recs?tx.recs.split("{afati}").join(due):g0.recs};
 }
 
 /* ---------- Pamjet ---------- */
 function render(){
+  applySettings();
   const tabs=$("#tabs"),hb=$("#hdrbtns");
   if(state.isAdmin===null){view.innerHTML=`<div class="empty">Duke u ngarkuar…</div>`;return;}
   if(!state.isAdmin){tabs.hidden=true;hb.hidden=true;$("#title").textContent=state.vv?"Vetëvlerësimi i mësuesit pas orës":"Regjistri i nëndrejtorit";
@@ -458,8 +463,8 @@ function render(){
   document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===state.tab));
   if(state.vv){view.innerHTML=selfView(true);bindSelf(true);return;}
   if(state.tab==="monitorimi"&&state.openObj){view.innerHTML=formView();bindForm();return;}
-  view.innerHTML=({pasqyra,monitorimi,java,veprimtarite,matura,mesuesit})[state.tab]();
-  ({pasqyra:bindOverview,monitorimi:bindMon,java:bindJava,veprimtarite:bindTasks,matura:bindMatura,mesuesit:bindTeachers})[state.tab]();
+  view.innerHTML=({pasqyra,monitorimi,java,veprimtarite,matura,mesuesit,cilesimet})[state.tab]();
+  ({pasqyra:bindOverview,monitorimi:bindMon,java:bindJava,veprimtarite:bindTasks,matura:bindMatura,mesuesit:bindTeachers,cilesimet:bindCfg})[state.tab]();
 }
 
 function pasqyra(){
@@ -550,13 +555,13 @@ function draftOf(){
 function formView(){
   const o=state.openObj,d=draftOf();const sc=scoreOf({scores:d.scores}),lv=levelOf(sc.pct);
   const groups=INSTR.map(g=>{const gp=sc.groups[g.id];
-    return `<div class="grp"><h3><span>${g.id} · ${esc(g.t)}</span><span class="mono" data-gp="${g.id}">${gp==null?"–":gp+"%"}</span></h3>${g.i.map((t,k)=>{const key=gkey(g,k),v=d.scores[key]||0;
+    return `<div class="grp"><h3><span>${g.id} · ${esc(g.t)}</span><span class="mono" data-gp="${g.id}">${gp==null?"–":gp+"%"}</span></h3>${g.i.map((t,k)=>{if(t[2])return"";const key=gkey(g,k),v=d.scores[key]||0;
       return `<div class="ind"><div class="t">${esc(t[0])}<span class="look">${esc(t[1])}</span></div><div class="seg" role="group" aria-label="${esc(t[0])}">${SCALE.map(([n,l])=>`<button type="button" data-k="${key}" data-v="${n}" aria-pressed="${v===n}" title="${n} · ${l}">${n}</button>`).join("")}<button type="button" data-k="${key}" data-v="0" aria-pressed="${!v}" title="Nuk vlerësohet">–</button></div></div>`;}).join("")}
       <div class="ev"><label class="f">Evidenca dhe vërejtje për ${g.id} (ç'u pa, ç'u dëgjua, ç'u kontrollua)<textarea data-ev="${g.id}">${esc(d.ev[g.id]||"")}</textarea></label></div></div>`;}).join("");
-  const ident=o.extra?`<label class="f">Mësuesi/ja<select id="f_teacher">${Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b)).map(t=>`<option ${d.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
+  const ident=true?`<label class="f">Mësuesi/ja<select id="f_teacher">${Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b)).map(t=>`<option ${d.teacher===t?"selected":""}>${esc(t)}</option>`).join("")}</select></label>
      <label class="f">Lënda<select id="f_subject">${["Matematikë","Fizikë","TIK"].map(s=>`<option ${d.subject===s?"selected":""}>${s}</option>`).join("")}</select></label>`:
      `<div><div class="muted" style="font-size:12.5px">Mësuesi/ja</div><strong>${esc(o.teacher)}</strong></div><div><div class="muted" style="font-size:12.5px">Lënda</div><strong>${esc(o.subject)}</strong></div>`;
-  const tname=o.extra?d.teacher:o.teacher;
+  const tname=d.teacher||o.teacher;
   const sf=state.selfForms[o.id];
   const link=ARTIFACT_URL+"#mesues-"+o.id;
   return `<button class="btn small" id="back">← Kthehu te lista</button>
@@ -640,7 +645,6 @@ function bindForm(){
     const msg=$("#saved");const now=new Date();const stamp=fmtShort(today())+" "+String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
     if(!d.date){msg.className="msg err";msg.textContent="Zgjidh datën e vëzhgimit para ruajtjes.";return;}
     const data={...d,savedAt:stamp,extra:!!o.extra};delete data.isModel;
-    if(!o.extra){delete data.teacher;delete data.subject;}
     const btn=$("#save");btn.disabled=true;msg.className="msg";msg.textContent="Duke ruajtur…";
     const r=await setDoc("obs",o.id,data);btn.disabled=false;
     if(r.ok){d.savedAt=stamp;state.obsDocs[o.id]=data;msg.className="msg ok";msg.textContent="Ruajtur "+stamp;toast("Vëzhgimi u ruajt.");}
@@ -718,7 +722,11 @@ function taskHtml(t){
   const d=state.taskDocs[t.id]||{},[st,cl]=taskStatus(t);
   return `<div class="task ${d.done?"done":""}" data-t="${t.id}"><input type="checkbox" ${d.done?"checked":""} aria-label="Kryer"><div class="tt">${esc(t.t)}</div>
   <div class="meta"><span>${esc(t.k)}</span>${t.p?`<span>Provë: ${esc(t.p)}</span>`:""}${pill(st,cl)}${d.done&&d.doneOn?`<span>kryer më ${esc(fmtShort(d.doneOn))}</span>`:""}</div>
-  <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button><button class="btn small tdel" style="color:var(--bad)">Fshi</button></div></div>`;
+  <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button><button class="btn small tdel" style="color:var(--bad)">Fshi</button></div>
+  <details class="tedit" style="grid-column:2"><summary class="muted" style="cursor:pointer;font-size:13px">Ndrysho veprimtarinë</summary>
+    <div class="grid2" style="margin-top:8px"><label class="f">Grupi<input class="te-g" list="grpList" value="${esc(t.g)}"></label><label class="f">Afati (tekst)<input class="te-k" value="${esc(t.k)}"></label><label class="f">Fillimi<input type="date" class="te-s" value="${esc(t.s||"")}"></label><label class="f">Fundi<input type="date" class="te-e" value="${esc(t.e||"")}"></label><label class="f">Prova<input class="te-p" value="${esc(t.p)}"></label></div>
+    <label class="f" style="margin-top:8px">Veprimtaria<input class="te-t" value="${esc(t.t)}"></label>
+    <div style="margin-top:8px"><button class="btn primary small te-save">Ruaj ndryshimet</button></div></details></div>`;
 }
 function bindTasks(){view.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{state.tfilter=b.dataset.tf;render();});bindTaskRows(view);bindPlan();
   view.querySelectorAll("[data-restore]").forEach(b=>b.onclick=async()=>{const id=b.dataset.restore,old=state.taskDocs[id]||{};const r=await setDoc("tasks",id,{...old,hidden:false});if(r.ok){state.taskDocs[id]={...old,hidden:false};render();}else toast("Nuk u rikthye. "+r.err);});
@@ -732,6 +740,11 @@ function bindTaskRows(root){
     const id=row.dataset.t,cb=row.querySelector("input[type=checkbox]"),inp=row.querySelector(".note input"),btn=row.querySelector(".note button");
     const save=async(done)=>{const old=state.taskDocs[id]||{};const doc={...old,done,doneOn:done?(old.doneOn||today()):"",note:inp.value};
       const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;return true;}toast("Nuk u ruajt. "+r.err);return false;};
+    row.querySelector(".te-save").onclick=async()=>{const q=c=>row.querySelector(c).value.trim();
+      const f={g:q(".te-g")||"Të tjera",t:q(".te-t"),k:q(".te-k"),s:q(".te-s")||null,e:q(".te-e")||null,p:q(".te-p")};
+      if(!f.t){toast("Shkruaj veprimtarinë.");return;}
+      const old=state.taskDocs[id]||{};const doc=id.startsWith("c-")?{...old,...f}:{...old,ov:f};
+      const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("U ruajt.");render();}else toast("Nuk u ruajt. "+r.err);};
     const del=row.querySelector(".tdel");
     if(del)del.onclick=async()=>{const cus=id.startsWith("c-");if(!confirm(cus?"Të fshij këtë veprimtari?":"Të fshij këtë veprimtari nga plani? Mund ta rikthesh nga filtri «Të fshirat»."))return;
       const old=state.taskDocs[id]||{};const r=cus?await delDoc("tasks",id):await setDoc("tasks",id,{...old,hidden:true});
@@ -800,10 +813,10 @@ function docShell(title,body){
 const nl=s=>esc(s||"").replace(/\n/g,"<br>");
 function lvLabel(v){const r=SCALE.find(x=>x[0]===v);return r?v+" · "+r[1]:"–";}
 function obsPage(o,d,sf){
-  const teacher=o.extra?d.teacher:o.teacher,subject=o.extra?d.subject:o.subject;
+  const teacher=d.teacher||o.teacher,subject=d.subject||o.subject;
   const sc=scoreOf({scores:d.scores||{}}),lv=levelOf(sc.pct);
   const rows=INSTR.map(g=>`<tr class="gh"><td colspan="2">${g.id} · ${esc(g.t)}</td><td class="num">${sc.groups[g.id]==null?"–":sc.groups[g.id]+"%"}</td></tr>`+
-    g.i.map((t,k)=>`<tr><td>${esc(t[0])}</td><td class="num" colspan="2">${lvLabel((d.scores||{})[gkey(g,k)]||(d.scores||{})[g.id+"."+k])}</td></tr>`).join("")+
+    g.i.map((t,k)=>t[2]?"":`<tr><td>${esc(t[0])}</td><td class="num" colspan="2">${lvLabel((d.scores||{})[gkey(g,k)]||(d.scores||{})[g.id+"."+k])}</td></tr>`).join("")+
     (d.ev&&d.ev[g.id]?`<tr><td colspan="3" class="sm"><b>Evidenca:</b> ${nl(d.ev[g.id])}</td></tr>`:"")).join("");
   return `<div class="page"><h1>Fletë vëzhgimi i orës mësimore</h1><div class="sm">Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027 · Nëndrejtor: Mendim Mera</div>
   <table><tr><th>Mësuesi/ja</th><td>${esc(teacher)}</td><th>Lënda</th><td>${esc(subject)}</td></tr>
@@ -1100,9 +1113,108 @@ function bindPlan(){
 }
 Object.assign(state,{selfSrc:{},openWk:{},wfilter:"all",planMeta:undefined,planErr:"",planLoading:false});
 
+
+/* ---------- Cilësimet: gjithçka e ndryshueshme nga regjistri ---------- */
+const BASE={teachers:JSON.parse(JSON.stringify(TEACHERS)),mclasses:[...MCLASSES],instr:JSON.parse(JSON.stringify(INSTR)),qfill:[...QFILL],dfill:[...DFILL],periods:JSON.parse(JSON.stringify(PERIODS)),selfItems:JSON.parse(JSON.stringify(SELF_ITEMS)),selfTexts:JSON.parse(JSON.stringify(SELF_TEXTS)),msteps:JSON.parse(JSON.stringify(MSTEPS))};
+function applySettings(){
+  const c=state.taskDocs["cfg-settings"]||{};
+  for(const k of Object.keys(TEACHERS))delete TEACHERS[k];
+  Object.assign(TEACHERS,JSON.parse(JSON.stringify(c.teachers||BASE.teachers)));
+  const fill=(arr,v,b)=>arr.splice(0,arr.length,...(Array.isArray(v)&&v.length?v:b));
+  fill(MCLASSES,c.mclasses,BASE.mclasses);fill(QFILL,c.qfill,BASE.qfill);fill(DFILL,c.dfill,BASE.dfill);fill(PERIODS,c.periods,BASE.periods);
+  const sv=c.self||{};
+  SELF_ITEMS.splice(0,SELF_ITEMS.length,...(sv.items&&sv.items.length?sv.items:BASE.selfItems));
+  SELF_TEXTS.forEach((x,i)=>{x[1]=(sv.texts&&sv.texts[x[0]])||BASE.selfTexts[i][1];});
+  MSTEPS.splice(0,MSTEPS.length,...(c.msteps&&c.msteps.length?c.msteps:BASE.msteps));
+  const ov=(c.instr||{}).over||{},ex=(c.instr||{}).extra||{};
+  INSTR.forEach((g,gi)=>{g.i=BASE.instr[gi].i.map((x,k)=>{const o=ov[gkey(g,k)]||{};return [o.t||x[0],o.l!=null?o.l:x[1],!!o.hidden];}).concat((ex[g.id]||[]).map(x=>[x[0],x[1]||"",!!x[2]]));});
+  const dl=document.getElementById("grpList");if(dl)dl.innerHTML=[...new Set(TASKS.map(t=>t.g))].map(g=>`<option value="${esc(g)}">`).join("");
+}
+async function saveCfg(patch,msg){
+  const old=state.taskDocs["cfg-settings"]||{},doc={...old,...patch};
+  const r=await setDoc("tasks","cfg-settings",doc);
+  if(r.ok){state.taskDocs["cfg-settings"]=doc;toast(msg||"U ruajt.");render();}else toast("Nuk u ruajt. "+r.err);
+  return r.ok;
+}
+const SUBJ=["Matematikë","Fizikë","TIK"];
+function cilesimet(){
+  const c=state.taskDocs["cfg-settings"]||{};
+  const gen=defaultTexts({date:today()},null),due=fmtShort(addDays(today(),14));
+  const tx=c.texts||{},recsDef=tx.recs||gen.recs.split(due).join("{afati}");
+  const tnames=Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b));
+  const trow=n=>`<div class="mrow" data-tn="${esc(n)}" style="grid-template-columns:minmax(140px,220px) 1fr auto"><strong>${esc(n)}</strong><div class="steps">${SUBJ.map(x=>`<label><input type="checkbox" data-sub="${x}" ${TEACHERS[n].includes(x)?"checked":""}> ${x}</label>`).join("")}</div><span style="display:flex;gap:6px"><button class="btn small renT">Riemërto</button><button class="btn small tdelT" style="color:var(--bad)">Fshi</button></span></div>`;
+  const igroups=INSTR.map((g,gi)=>`<div class="grp"><h3><span>${g.id} · ${esc(g.t)}</span></h3>${g.i.concat([["","",false]]).map((t,k)=>{const isNew=k===g.i.length;
+    return `<div class="irow ind" data-g="${g.id}" data-k="${isNew?"new":k}" style="display:grid;grid-template-columns:1fr 1fr auto;gap:6px">
+      <input class="ii-t" value="${esc(t[0])}" placeholder="${isNew?"+ Tregues i ri":""}" aria-label="Treguesi" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0">
+      <input class="ii-l" value="${esc(t[1])}" placeholder="Si e vëzhgoj" aria-label="Si e vëzhgoj" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0">
+      ${isNew?"<span></span>":`<label style="font-size:13px;white-space:nowrap"><input type="checkbox" class="ii-h" ${t[2]?"checked":""}> Fshehur</label>`}</div>`;}).join("")}</div>`).join("");
+  return `<p class="sub" style="margin-bottom:14px">Këtu ndryshon çdo material të regjistrit pa e prekur skedarin. Çdo seksion ka butonin e vet «Ruaj».</p>
+  <section class="panel" style="margin-bottom:14px"><h2>Mësuesit dhe lëndët</h2>
+    ${tnames.map(trow).join("")}
+    <div class="mrow" id="newT" style="grid-template-columns:minmax(140px,220px) 1fr auto"><input id="newTn" placeholder="Mësues i ri (emër mbiemër)" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px"><div class="steps">${SUBJ.map(x=>`<label><input type="checkbox" data-nsub="${x}"> ${x}</label>`).join("")}</div><button class="btn primary small" id="addT">Shto</button></div>
+    <p class="legend">Për të ndryshuar emrin, shto mësuesin me emrin e ri dhe fshi të vjetrin. Vëzhgimet e kaluara mbeten me emrin e vjetër.</p></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Klasat e Maturës</h2><label class="f">Një klasë për rresht<textarea id="cfgMcl" rows="6">${esc(MCLASSES.join("\n"))}</textarea></label><div style="margin-top:8px"><button class="btn primary small" id="saveMcl">Ruaj klasat</button></div></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Instrumenti i vëzhgimit</h2><p class="sub" style="margin-bottom:6px">Ndrysho tekstin e treguesve dhe shpjegimin «si e vëzhgoj», fshih treguesit që nuk të duhen ose shto të rinj në fund të grupit. Treguesit e fshehur nuk hyjnë në përqindje.</p>${igroups}<div style="margin-top:10px"><button class="btn primary small" id="saveInstr">Ruaj instrumentin</button></div></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Tekstet model</h2>
+    <label class="f">Pikat e forta (model i përgjithshëm)<textarea id="cfgS" rows="4">${esc(tx.strengths||gen.strengths)}</textarea></label>
+    <label class="f" style="margin-top:8px">Fushat për përmirësim<textarea id="cfgI" rows="4">${esc(tx.improve||gen.improve)}</textarea></label>
+    <label class="f" style="margin-top:8px">Rekomandime (shkruaj {afati} ku do të dalë data e afatit, 14 ditë pas vëzhgimit)<textarea id="cfgR" rows="4">${esc(recsDef)}</textarea></label>
+    <label class="f" style="margin-top:8px">Veprimtari të orës së cilësisë për propozimin javor (një për rresht)<textarea id="cfgQ" rows="6">${esc(QFILL.join("\n"))}</textarea></label>
+    <label class="f" style="margin-top:8px">Veprimtari të orës së dokumentimit (një për rresht)<textarea id="cfgD" rows="4">${esc(DFILL.join("\n"))}</textarea></label>
+    <div style="margin-top:8px"><button class="btn primary small" id="saveTx">Ruaj tekstet</button></div></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Formulari i vetëvlerësimit të mësuesit</h2>
+    <p class="sub" style="margin-bottom:6px">Pohimet që mësuesi vlerëson me shkallë 1–4. Hiq shenjën «Fshi» vetëm nëse nuk të duhet pohimi. Shto pohime të reja në rreshtin e fundit.</p>
+    ${SELF_ITEMS.concat([["new",""]]).map(([k,t])=>`<div class="srow" data-k="${esc(k)}" style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:6px"><input class="sr-t" value="${esc(t)}" placeholder="${k==="new"?"+ Pohim i ri":""}" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0">${k==="new"?"<span></span>":`<label style="font-size:13px"><input type="checkbox" class="sr-d"> Fshi</label>`}</div>`).join("")}
+    <p class="sub" style="margin:10px 0 6px">Pyetjet e hapura</p>
+    ${SELF_TEXTS.map(([k,t])=>`<input class="st-t" data-k="${k}" value="${esc(t)}" style="display:block;width:100%;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;margin-bottom:6px">`).join("")}
+    <div style="margin-top:8px"><button class="btn primary small" id="saveSelfCfg">Ruaj formularin</button></div>
+    <p class="legend">Mësuesi i sheh ndryshimet në formular kur e hap lidhjen, nëse rregullat e Firebase e lejojnë leximin e koleksionit «tasks» edhe për përdoruesit anonimë. Përndryshe sheh pohimet fillestare dhe përgjigjet ruhen njësoj.</p></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Hapat e Maturës për secilën klasë</h2>
+    ${MSTEPS.concat([["new",""]]).map(([k,t])=>`<div class="msrow" data-k="${esc(k)}" style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-bottom:6px"><input class="ms-t" value="${esc(t)}" placeholder="${k==="new"?"+ Hap i ri":""}" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0">${k==="new"?"<span></span>":`<label style="font-size:13px"><input type="checkbox" class="ms-d"> Fshi</label>`}</div>`).join("")}
+    <div style="margin-top:8px"><button class="btn primary small" id="saveMst">Ruaj hapat</button></div></section>
+  <section class="panel" style="margin-bottom:14px"><h2>Periudhat e vitit shkollor</h2><div class="grid2">${PERIODS.map((p,i)=>`<div><strong>Periudha ${esc(p[0])}</strong><label class="f">Fillimi<input type="date" class="pr-s" value="${esc(p[1])}"></label><label class="f">Fundi<input type="date" class="pr-e" value="${esc(p[2])}"></label></div>`).join("")}</div><div style="margin-top:8px"><button class="btn primary small" id="savePr">Ruaj periudhat</button></div>
+    <p class="legend">Javët pa mësim ndryshohen te skeda «Orari javor». Datat dhe klasat e vëzhgimeve ndryshohen te fleta e secilit vëzhgim. Veprimtaritë ndryshohen te skeda «Veprimtaritë».</p></section>
+  <section class="panel"><h2>Rikthe vlerat fillestare</h2><p class="sub" style="margin-bottom:8px">Heq të gjitha ndryshimet e këtij seksioni (mësuesit, klasat, instrumentin, tekstet, periudhat). Vëzhgimet e plotësuara nuk preken.</p><button class="btn small" id="resetCfg" style="color:var(--bad)">Rikthe fillestaret</button></section>`;
+}
+function bindCfg(){
+  const lines=id=>$(id).value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const collectT=()=>{const t={};view.querySelectorAll(".mrow[data-tn]").forEach(r=>{t[r.dataset.tn]=[...r.querySelectorAll("[data-sub]")].filter(i=>i.checked).map(i=>i.dataset.sub);});return t;};
+  view.querySelectorAll(".mrow[data-tn] [data-sub]").forEach(i=>i.onchange=()=>saveCfg({teachers:collectT()}));
+  view.querySelectorAll(".tdelT").forEach(b=>b.onclick=()=>{const n=b.closest(".mrow").dataset.tn;if(!confirm("Të fshij mësuesin "+n+" nga lista?"))return;const t=collectT();delete t[n];saveCfg({teachers:t},"Mësuesi u fshi.");});
+  $("#addT").onclick=()=>{const n=$("#newTn").value.trim(),ss=[...view.querySelectorAll("[data-nsub]")].filter(i=>i.checked).map(i=>i.dataset.nsub);
+    if(!n||!ss.length){toast("Shkruaj emrin dhe zgjidh të paktën një lëndë.");return;}const t=collectT();t[n]=ss;saveCfg({teachers:t},"Mësuesi u shtua.");};
+  view.querySelectorAll(".renT").forEach(b=>b.onclick=async()=>{const old=b.closest(".mrow").dataset.tn;const nu=(prompt("Emri i ri për "+old+":",old)||"").trim();if(!nu||nu===old)return;
+    if(TEACHERS[nu]){toast("Ky emër ekziston tashmë.");return;}
+    const mine=allObs().filter(o=>o.teacher===old);b.disabled=true;
+    for(const o of mine){const r=await setDoc("obs",o.id,{...(state.obsDocs[o.id]||{}),teacher:nu});if(!r.ok){toast("Nuk u riemërtua. "+r.err);b.disabled=false;return;}state.obsDocs[o.id]={...(state.obsDocs[o.id]||{}),teacher:nu};}
+    const t=collectT();t[nu]=t[old];delete t[old];saveCfg({teachers:t},"Mësuesi u riemërtua në "+mine.length+" vëzhgime.");});
+  $("#saveSelfCfg").onclick=()=>{const items=[];let n=0;
+    view.querySelectorAll(".srow").forEach(r=>{const k=r.dataset.k,t=r.querySelector(".sr-t").value.trim();if(!t)return;
+      if(k==="new"){items.push(["s"+Date.now().toString(36)+(n++),t]);return;}if(r.querySelector(".sr-d").checked)return;items.push([k,t]);});
+    if(!items.length){toast("Duhet të ketë të paktën një pohim.");return;}
+    const texts={};view.querySelectorAll(".st-t").forEach(i=>{if(i.value.trim())texts[i.dataset.k]=i.value.trim();});
+    saveCfg({self:{items,texts}},"Formulari u ruajt.");};
+  $("#saveMst").onclick=()=>{const m=[];let n=0;
+    view.querySelectorAll(".msrow").forEach(r=>{const k=r.dataset.k,t=r.querySelector(".ms-t").value.trim();if(!t)return;
+      if(k==="new"){m.push(["x"+Date.now().toString(36)+(n++),t]);return;}if(r.querySelector(".ms-d").checked)return;m.push([k,t]);});
+    if(!m.length){toast("Duhet të ketë të paktën një hap.");return;}saveCfg({msteps:m},"Hapat u ruajtën.");};
+  $("#saveMcl").onclick=()=>saveCfg({mclasses:lines("#cfgMcl")});
+  $("#saveInstr").onclick=()=>{const over={},extra={};
+    INSTR.forEach((g,gi)=>{const nb=BASE.instr[gi].i.length;
+      view.querySelectorAll('.irow[data-g="'+g.id+'"]').forEach(r=>{const k=r.dataset.k,t=r.querySelector(".ii-t").value.trim(),l=r.querySelector(".ii-l").value.trim(),h=r.querySelector(".ii-h")?r.querySelector(".ii-h").checked:false;
+        if(k==="new"){if(t)(extra[g.id]=extra[g.id]||[]).push([t,l,false]);return;}
+        const ki=+k;if(ki<nb){const b=BASE.instr[gi].i[ki];if(t!==b[0]||l!==b[1]||h)over[gkey(g,ki)]={t:t||b[0],l,hidden:h};}
+        else(extra[g.id]=extra[g.id]||[]).push([t||"(pa tekst)",l,h]);});});
+    saveCfg({instr:{over,extra}},"Instrumenti u ruajt.");};
+  $("#saveTx").onclick=()=>saveCfg({texts:{strengths:$("#cfgS").value,improve:$("#cfgI").value,recs:$("#cfgR").value},qfill:lines("#cfgQ"),dfill:lines("#cfgD")});
+  $("#savePr").onclick=()=>{const ss=[...view.querySelectorAll(".pr-s")],ee=[...view.querySelectorAll(".pr-e")];
+    if(ss.some(x=>!x.value)||ee.some(x=>!x.value)){toast("Plotëso të gjitha datat.");return;}saveCfg({periods:PERIODS.map((p,i)=>[p[0],ss[i].value,ee[i].value])});};
+  $("#resetCfg").onclick=async()=>{if(!confirm("Të rikthej vlerat fillestare të cilësimeve?"))return;const r=await delDoc("tasks","cfg-settings");if(r.ok){delete state.taskDocs["cfg-settings"];render();toast("U rikthyen vlerat fillestare.");}else toast("Nuk u rikthye. "+r.err);};
+}
+
 /* ---------- Nisja ---------- */
 function route(){const h=location.hash.slice(1);state.vv=null;
-  if(h.startsWith("vv-"))state.vv=h.slice(3);else if(h.startsWith("mesues-"))state.vv=h.slice(7);else if(["pasqyra","monitorimi","java","veprimtarite","matura","mesuesit"].includes(h))state.tab=h;}
+  if(h.startsWith("vv-"))state.vv=h.slice(3);else if(h.startsWith("mesues-"))state.vv=h.slice(7);else if(["pasqyra","monitorimi","java","veprimtarite","matura","mesuesit","cilesimet"].includes(h))state.tab=h;}
 document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;state.vv=null;state.openObj=null;state.draft=null;history.replaceState(null,"","#"+state.tab);render();});
 window.addEventListener("hashchange",()=>{route();state.openObj=null;render();});
 route();render();
@@ -1120,6 +1232,7 @@ $("#dossierBtn").onclick=()=>downloadHtml("dosja-nendrejtori-2026-2027.html",doc
   let admin=false;
   try{admin=user?await user.canEdit():false;}catch(e){admin=false;}
   state.isAdmin=!!admin;
+  if(db&&!admin){try{const cs=await withTimeout(db.collection("tasks").doc("cfg-settings").get(),6000);if(cs&&cs.exists)state.taskDocs["cfg-settings"]=cs.data();}catch(e){}}
   if(!db){$("#banner").innerHTML='<div class="banner">'+(window.__FBERR?"Lidhja me Firebase dështoi: "+esc(window.__FBERR):"Ruajtja nuk është e lidhur.")+'</div>';}
   render();
   if(!db||!admin)return;
