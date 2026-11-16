@@ -721,7 +721,7 @@ function veprimtarite(){
 function taskHtml(t){
   const d=state.taskDocs[t.id]||{},[st,cl]=taskStatus(t);
   return `<div class="task ${d.done?"done":""}" data-t="${t.id}"><input type="checkbox" ${d.done?"checked":""} aria-label="Kryer"><div class="tt">${esc(t.t)}</div>
-  <div class="meta"><span>${esc(t.k)}</span>${t.p?`<span>Provë: ${esc(t.p)}</span>`:""}${pill(st,cl)}${d.done&&d.doneOn?`<span>kryer më ${esc(fmtShort(d.doneOn))}</span>`:""}</div>
+  <div class="meta"><span>${esc(t.k)}</span>${t.p?`<span>Provë: ${esc(t.p)}</span>`:""}${pill(st,cl)}${d.done?`<label>kryer më <input type="date" class="td-on" value="${esc(d.doneOn||"")}" style="background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:2px 6px;color:inherit"></label>`:""}</div>
   <div class="note"><input placeholder="Shënim" value="${esc(d.note||"")}" aria-label="Shënim"><button class="btn small">Ruaj</button><button class="btn small tdel" style="color:var(--bad)">Fshi</button></div>
   <details class="tedit" style="grid-column:2"><summary class="muted" style="cursor:pointer;font-size:13px">Ndrysho veprimtarinë</summary>
     <div class="grid2" style="margin-top:8px"><label class="f">Grupi<input class="te-g" list="grpList" value="${esc(t.g)}"></label><label class="f">Afati (tekst)<input class="te-k" value="${esc(t.k)}"></label><label class="f">Fillimi<input type="date" class="te-s" value="${esc(t.s||"")}"></label><label class="f">Fundi<input type="date" class="te-e" value="${esc(t.e||"")}"></label><label class="f">Prova<input class="te-p" value="${esc(t.p)}"></label></div>
@@ -745,6 +745,8 @@ function bindTaskRows(root){
       if(!f.t){toast("Shkruaj veprimtarinë.");return;}
       const old=state.taskDocs[id]||{};const doc=id.startsWith("c-")?{...old,...f}:{...old,ov:f};
       const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("U ruajt.");render();}else toast("Nuk u ruajt. "+r.err);};
+    const don=row.querySelector(".td-on");
+    if(don)don.onchange=async()=>{const old=state.taskDocs[id]||{};const doc={...old,doneOn:don.value};const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("Data u ruajt.");}else toast("Nuk u ruajt. "+r.err);};
     const del=row.querySelector(".tdel");
     if(del)del.onclick=async()=>{const cus=id.startsWith("c-");if(!confirm(cus?"Të fshij këtë veprimtari?":"Të fshij këtë veprimtari nga plani? Mund ta rikthesh nga filtri «Të fshirat»."))return;
       const old=state.taskDocs[id]||{};const r=cus?await delDoc("tasks",id):await setDoc("tasks",id,{...old,hidden:true});
