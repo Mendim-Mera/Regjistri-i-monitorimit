@@ -694,8 +694,10 @@ function bindSelf(admin){
     const data={teacher:s.teacher,subject:s.subject,klasa:s.klasa,date:s.date,tema:s.tema,at:new Date().toISOString(),by:admin?"nëndrejtori":"mësuesi"};
     SELF_ITEMS.forEach(([k])=>{if(s[k])data[k]=s[k];});SELF_TEXTS.forEach(([k])=>{data[k]=s[k];});
     btn.disabled=true;msg.className="msg";msg.textContent="Duke dërguar…";
-    try{if(window.__STANDALONE&&window.__TEACHER){showCode(id,data);s.sent=true;msg.className="msg ok";msg.textContent="Vetëvlerësimi u plotësua. Dërgoja nëndrejtorit me kodin më poshtë.";toast("Kopjo kodin dhe dërgoje.");}else{await saveSelf(id,data);s.sent=true;msg.className="msg ok";msg.textContent="U dërgua. Faleminderit.";if(admin)state.selfForms[id]=data;toast("Vetëvlerësimi u ruajt.");}}
-    catch(e){console.error(e);msg.className="msg err";msg.textContent="Nuk u dërgua: "+errText(e);}
+    try{if(window.__TEACHER&&(window.__STANDALONE||!db)){showCode(id,data);s.sent=true;msg.className="msg ok";msg.textContent="Vetëvlerësimi u plotësua. Dërgoja nëndrejtorit me kodin më poshtë.";toast("Kopjo kodin dhe dërgoje.");}else{await saveSelf(id,data);s.sent=true;msg.className="msg ok";msg.textContent="U dërgua. Faleminderit.";if(admin)state.selfForms[id]=data;toast("Vetëvlerësimi u ruajt.");}}
+    catch(e){console.error(e);
+      if(window.__TEACHER&&!admin){try{showCode(id,data);s.sent=true;msg.className="msg ok";msg.textContent="Dërgimi i drejtpërdrejtë nuk funksionoi. Dërgoja nëndrejtorit kodin më poshtë.";}catch(e1){msg.className="msg err";msg.textContent="Nuk u dërgua: "+errText(e);}}
+      else{msg.className="msg err";msg.textContent="Nuk u dërgua: "+errText(e);}}
     btn.disabled=false;
   };
 }
@@ -1292,7 +1294,7 @@ $("#dossierBtn").onclick=()=>downloadHtml("dosja-nendrejtori-2026-2027.html",doc
   try{admin=user?await user.canEdit():false;}catch(e){admin=false;}
   state.isAdmin=!!admin;
   if(db&&!admin){try{const cs=await withTimeout(db.collection("tasks").doc("cfg-settings").get(),6000);if(cs&&cs.exists)state.taskDocs["cfg-settings"]=cs.data();}catch(e){}}
-  if(!db){$("#banner").innerHTML='<div class="banner">'+(window.__FBERR?"Lidhja me Firebase dështoi: "+esc(window.__FBERR):"Ruajtja nuk është e lidhur.")+'</div>';}
+  if(!db&&window.__TEACHER){$("#banner").innerHTML='<div class="banner">Plotëso formularin. Në fund do të marrësh një kod që ia dërgon nëndrejtorit.</div>';}else if(!db){$("#banner").innerHTML='<div class="banner">'+(window.__FBERR?"Lidhja me Firebase dështoi: "+esc(window.__FBERR):"Ruajtja nuk është e lidhur.")+'</div>';}
   render();
   if(!db||!admin)return;
   const timer=setTimeout(()=>{if(!(state.loaded.obs&&state.loaded.tasks&&state.loaded.mat))toast("Të dhënat e ruajtura nuk arrijnë dot të ngarkohen tani. Mund të jenë të vjetra.");},10000);
