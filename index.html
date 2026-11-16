@@ -726,7 +726,11 @@ function taskHtml(t){
   <details class="tedit" style="grid-column:2"><summary class="muted" style="cursor:pointer;font-size:13px">Ndrysho veprimtarinë</summary>
     <div class="grid2" style="margin-top:8px"><label class="f">Grupi<input class="te-g" list="grpList" value="${esc(t.g)}"></label><label class="f">Afati (tekst)<input class="te-k" value="${esc(t.k)}"></label><label class="f">Fillimi<input type="date" class="te-s" value="${esc(t.s||"")}"></label><label class="f">Fundi<input type="date" class="te-e" value="${esc(t.e||"")}"></label><label class="f">Prova<input class="te-p" value="${esc(t.p)}"></label></div>
     <label class="f" style="margin-top:8px">Veprimtaria<input class="te-t" value="${esc(t.t)}"></label>
-    <div style="margin-top:8px"><button class="btn primary small te-save">Ruaj ndryshimet</button></div></details></div>`;
+    <div style="margin-top:8px"><button class="btn primary small te-save">Ruaj ndryshimet</button></div></details>
+  <details class="pvbox" style="grid-column:2"><summary style="cursor:pointer;font-size:13px;color:var(--accent)">Dokumenti: ${esc(t.p||"Shënime")}${d.pv?" · i ruajtur":""}</summary>
+    <textarea class="pv-ta" rows="16" style="width:100%;margin-top:8px;font-family:var(--mono);font-size:13px;line-height:1.5">${esc(d.pv||"")}</textarea>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><button class="btn primary small pv-save">Ruaj dokumentin</button><button class="btn small pv-gen">Rigjenero modelin</button><button class="btn small pv-dl">Shkarko për printim</button><button class="btn small pv-del" style="color:var(--bad)">Fshi dokumentin</button><span class="msg pv-msg"></span></div>
+    <p class="legend">Modeli plotësohet vetë me të dhënat e regjistrit. Ndryshoje lirshëm: ruhet vetëm kur shtyp «Ruaj dokumentin».</p></details></div>`;
 }
 function bindTasks(){view.querySelectorAll("[data-tf]").forEach(b=>b.onclick=()=>{state.tfilter=b.dataset.tf;render();});bindTaskRows(view);bindPlan();
   view.querySelectorAll("[data-restore]").forEach(b=>b.onclick=async()=>{const id=b.dataset.restore,old=state.taskDocs[id]||{};const r=await setDoc("tasks",id,{...old,hidden:false});if(r.ok){state.taskDocs[id]={...old,hidden:false};render();}else toast("Nuk u rikthye. "+r.err);});
@@ -745,6 +749,14 @@ function bindTaskRows(root){
       if(!f.t){toast("Shkruaj veprimtarinë.");return;}
       const old=state.taskDocs[id]||{};const doc=id.startsWith("c-")?{...old,...f}:{...old,ov:f};
       const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("U ruajt.");render();}else toast("Nuk u ruajt. "+r.err);};
+    const pvd=row.querySelector(".pvbox"),pta=row.querySelector(".pv-ta"),pmsg=row.querySelector(".pv-msg");
+    const tk=()=>TL().find(x=>x.id===id)||{id,t:"",g:"",k:"",p:""};
+    pvd.ontoggle=()=>{if(pvd.open&&!pta.value.trim())pta.value=genDoc(tk());};
+    row.querySelector(".pv-gen").onclick=()=>{if(pta.value.trim()&&!confirm("Të zëvendësoj tekstin aktual me modelin e ri?"))return;pta.value=genDoc(tk());};
+    row.querySelector(".pv-save").onclick=async()=>{const old=state.taskDocs[id]||{};const doc={...old,pv:pta.value};const r=await setDoc("tasks",id,doc);
+      if(r.ok){state.taskDocs[id]=doc;pmsg.className="msg ok";pmsg.textContent="U ruajt.";}else{pmsg.className="msg err";pmsg.textContent="Nuk u ruajt: "+r.err;}};
+    row.querySelector(".pv-del").onclick=async()=>{if(!confirm("Të fshij dokumentin e ruajtur?"))return;const old={...(state.taskDocs[id]||{})};delete old.pv;const r=await setDoc("tasks",id,old);if(r.ok){state.taskDocs[id]=old;pta.value="";pmsg.textContent="U fshi.";}else toast("Nuk u fshi. "+r.err);};
+    row.querySelector(".pv-dl").onclick=()=>{const t=tk();downloadHtml("dokument-"+slug(t.t).slice(0,40)+".html",docShell(t.p||t.t,pvPage(t,pta.value)));};
     const don=row.querySelector(".td-on");
     if(don)don.onchange=async()=>{const old=state.taskDocs[id]||{};const doc={...old,doneOn:don.value};const r=await setDoc("tasks",id,doc);if(r.ok){state.taskDocs[id]=doc;toast("Data u ruajt.");}else toast("Nuk u ruajt. "+r.err);};
     const del=row.querySelector(".tdel");
@@ -860,7 +872,7 @@ function fullDossier(){
   <h2>Grafiku i monitorimit të orëve mësimore</h2>${summaryTable(obs)}</div>`+
   doneObs(obs).map(o=>obsPage(o,{...o.doc,date:o.date,klasa:o.klasa,ora:o.ora,shift:o.shift},state.selfForms[o.id])).join("")+
   `<div class="page"><h1>Orari javor i nëndrejtorit (4 orë në javë)</h1>${weekTable()}</div><div class="page"><h1>Veprimtaritë e planit vjetor</h1>${groups.map(g=>`<h2>${esc(g)}</h2>${taskTable(TL().filter(t=>t.g===g))}`).join("")}
-  <h2>Matura Shtetërore: ecuria sipas klasave</h2><table><tr><th>Klasa</th>${MSTEPS.map(s=>`<th class="num">${esc(s[1])}</th>`).join("")}<th>Shënim</th></tr>${mrows}</table></div>`;
+  <h2>Matura Shtetërore: ecuria sipas klasave</h2><table><tr><th>Klasa</th>${MSTEPS.map(s=>`<th class="num">${esc(s[1])}</th>`).join("")}<th>Shënim</th></tr>${mrows}</table></div>`+taskDocsPage();
 }
 function teacherDossier(t){
   const mine=allObs().filter(o=>o.teacher===t);
@@ -1212,6 +1224,51 @@ function bindCfg(){
   $("#savePr").onclick=()=>{const ss=[...view.querySelectorAll(".pr-s")],ee=[...view.querySelectorAll(".pr-e")];
     if(ss.some(x=>!x.value)||ee.some(x=>!x.value)){toast("Plotëso të gjitha datat.");return;}saveCfg({periods:PERIODS.map((p,i)=>[p[0],ss[i].value,ee[i].value])});};
   $("#resetCfg").onclick=async()=>{if(!confirm("Të rikthej vlerat fillestare të cilësimeve?"))return;const r=await delDoc("tasks","cfg-settings");if(r.ok){delete state.taskDocs["cfg-settings"];render();toast("U rikthyen vlerat fillestare.");}else toast("Nuk u rikthye. "+r.err);};
+}
+
+
+/* ---------- Dokumentet e provës për çdo veprimtari ---------- */
+function monStats(){
+  const all=allObs(),done=all.filter(o=>o.doc.status==="kryer"),planned=all.filter(o=>!o.extra&&o.doc.status!=="hequr").length;
+  const sc=done.map(o=>scoreOf(o.doc).pct).filter(p=>p!=null),avg=sc.length?Math.round(sc.reduce((a,b)=>a+b,0)/sc.length):null;
+  const open=done.filter(o=>o.doc.recs&&!o.doc.recsDone).length;
+  return "Vëzhgime të kryera: "+done.length+" nga "+planned+" të planifikuara"+(avg==null?"":"; mesatarja e rezultateve: "+avg+"% ("+levelOf(avg)+")")+"; rekomandime të pazbatuara: "+open+"; vetëvlerësime të mësuesve: "+Object.keys(state.selfForms).length+".";
+}
+function kindOf(t){
+  const p=(t.p||"").toLowerCase(),x=(t.t||"").toLowerCase();
+  if(p.includes("procesverbal"))return "pv";
+  if(p.includes("fleta e kontrollit"))return "chk";
+  if(p.includes("fleta e inspektimit"))return "insp";
+  if(p.includes("raport"))return "rep";
+  if(p.includes("programi"))return "trn";
+  if(p.includes("pyetësor"))return "qst";
+  if(p.startsWith("plani"))return "plan";
+  if(p.includes("formular vëzhgimi"))return "obs";
+  if(t.g===GM)return "mat";
+  if(x.includes("takim"))return "pv";
+  return "gen";
+}
+function genDoc(t){
+  const kind=kindOf(t),d=fmtShort(t.e||today()),L="_".repeat(18);
+  const head=`Gjimnazi "Said Najdeni", Peshkopi · viti shkollor 2026–2027\n`;
+  const teachers=Object.keys(TEACHERS).sort((a,b)=>a.localeCompare(b));
+  const sign=`\n\nNëndrejtori: Mendim Mera  ____________      Drejtori: ____________`;
+  if(kind==="pv")return `PROCESVERBAL\n${head}${t.t}\n\nData: ${d}      Ora: __:__      Vendi: Gjimnazi "Said Najdeni"\nUdhëheq: Mendim Mera, nëndrejtor\nProcesverbalin e mbajti: ${L}\nTë pranishëm: ${teachers.join("; ")}\nTë munguar: ${L}\n\nRENDI I DITËS\n1. Analiza e realizimit të planit mësimor dhe e rezultateve të nxënësve\n2. Rekomandimet nga vëzhgimet e orëve mësimore\n3. Metodat e reja, TIK dhe diferencimi në mësim\n4. Të ndryshme\n\nDISKUTIMI\n1. ...\n2. ...\n3. ...\n4. ...\n\nVENDIMET DHE DETYRAT\nNr | Detyra | Përgjegjësi | Afati\n1 | ... | ... | ...\n2 | ... | ... | ...\n${sign}`;
+  if(kind==="rep")return `RAPORT\n${head}${t.t}\nAfati: ${t.k||d}      Përgatitur nga: Mendim Mera, nëndrejtor      Data: ${d}\n\n1. QËLLIMI\nÇfarë u monitorua dhe pse.\n\n2. METODOLOGJIA DHE BURIMET\nSMIP, fletat e vëzhgimit, procesverbalet e ekipit lëndor, vetëvlerësimet e mësuesve.\n\n3. TË DHËNAT KRYESORE\n${monStats()}\n\n4. GJETJET\nPikat e forta:\n• ...\nÇështjet për përmirësim:\n• ...\n\n5. REKOMANDIME DHE AFATE\nNr | Rekomandimi | Përgjegjësi | Afati\n1 | ... | ... | ...\n\n6. KONKLUZIONE\n...${sign}`;
+  if(kind==="chk"){return `FLETË KONTROLLI\n${head}${t.t}\nData e kontrollit: ${d}      Kontrolloi: Mendim Mera\n\nSh. [ ] po   [ ] jo   [~] pjesërisht\n\nMësuesi/ja | Plani vjetor | Plani mujor | Plani ditor | Vërejtje\n${teachers.map(n=>n+" | [ ] | [ ] | [ ] | ").join("\n")}\n\nPërfundimi: ...${sign}`;}
+  if(kind==="insp")return `FLETË INSPEKTIMI I LABORATORIT\n${head}${t.t}\nData: ${d}      Laboratori: Fizikë / TIK      Inspektoi: Mendim Mera\n\n[ ] Instalimet elektrike dhe prizat në gjendje të mirë\n[ ] Pajisjet funksionojnë dhe janë të inventarizuara\n[ ] Rregullat e sigurisë janë të afishuara\n[ ] Kompjuterat dhe rrjeti funksionojnë\n[ ] Materialet dhe kimikatet ruhen sipas rregullave\n[ ] Ventilimi, drita dhe pastërtia\n[ ] Mjetet e ndihmës së parë\n\nProblemet e vërejtura: ...\nMasat dhe afatet: ...${sign}`;
+  if(kind==="trn")return `PROGRAM TRAJNIMI I BRENDSHËM\n${head}${t.t}\nData: ${d}      Ora: __:__      Vendi: ${L}\nTrajner: ${L}      Pjesëmarrës: ${teachers.join("; ")}\n\nQËLLIMI\n...\n\nAGJENDA\n1. Hyrje dhe pritshmëritë (10 min)\n2. Prezantimi i temës (30 min)\n3. Praktikë në grupe (30 min)\n4. Diskutim dhe plan veprimi (20 min)\n\nPJESËMARRJA\nEmri | Nënshkrimi\n${teachers.map(n=>n+" | ").join("\n")}\n\nVLERËSIMI I TRAJNIMIT\n...${sign}`;
+  if(kind==="qst")return `PYETËSOR MBI MËSIMDHËNIEN\n${head}${t.t}\nPër: nxënës / prindër      Data: ${d}\n\nVlerëso nga 1 (aspak) në 4 (plotësisht):\n1. Mësuesi shpjegon qartë temën.  [1] [2] [3] [4]\n2. Ora është interesante dhe aktive.  [1] [2] [3] [4]\n3. Detyrat e shtëpisë janë të përshtatshme.  [1] [2] [3] [4]\n4. Mësuesi më jep reagim për punën time.  [1] [2] [3] [4]\n5. Ndihem i/e respektuar në klasë.  [1] [2] [3] [4]\n\nÇfarë do të ndryshoje në mësimdhënie?\n...\n\nANALIZA E REZULTATEVE\nNr. i përgjigjeve: ...   Mesatarja sipas pyetjeve: ...\nPërfundime: ...${sign}`;
+  if(kind==="plan")return `PLAN\n${head}${t.t}\nPeriudha: ${t.k||d}      Hartoi: Mendim Mera, nëndrejtor\n\nOBJEKTIVAT\n1. ...\n\nVEPRIMTARITË\nNr | Veprimtaria | Përgjegjësi | Afati | Prova\n1 | ... | ... | ... | ...\n\nBURIMET\n...\n\nVLERËSIMI I ZBATIMIT\n...${sign}`;
+  if(kind==="obs")return `SHËNIM\n${head}${t.t}\nData: ${d}\n\nFletët e vëzhgimit plotësohen te skeda «Monitorimi» (mund të shtosh edhe vëzhgim shtesë).\n\nShënime shtesë:\n...${sign}`;
+  if(kind==="mat")return `SHËNIM PËR MATURËN SHTETËRORE\n${head}${t.t}\nAfati: ${t.k||d}      Administratori i Maturës: Mendim Mera\n\nÇfarë u bë:\n• ...\n\nKlasat dhe nxënësit e përfshirë:\n...\n\nProblemet dhe zgjidhjet:\n...\n\nHapat e ardhshëm dhe afatet:\n...${sign}`;
+  return `${(t.p||"SHËNIM").toUpperCase()}\n${head}${t.t}\nAfati: ${t.k||d}\n\nPërshkrim:\n...\n\nPërfundime:\n...${sign}`;
+}
+const txtHtml=x=>`<pre style="white-space:pre-wrap;font-family:Arial,Helvetica,sans-serif;font-size:11pt;line-height:1.5">${esc(x)}</pre>`;
+function pvPage(t,text){return `<div class="page">${txtHtml(text)}<div class="sig"><div>Nëndrejtori (Mendim Mera)</div><div>Drejtori</div></div></div>`;}
+function taskDocsPage(){
+  const list=TL().filter(t=>(state.taskDocs[t.id]||{}).pv);
+  return list.length?`<div class="page"><h1>Dokumentet e veprimtarive</h1></div>`+list.map(t=>pvPage(t,state.taskDocs[t.id].pv)).join(""):"";
 }
 
 /* ---------- Nisja ---------- */
